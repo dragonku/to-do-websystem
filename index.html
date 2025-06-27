@@ -57,43 +57,9 @@
             <section class="add-todo-section">
                 <div class="input-group">
                     <input type="text" id="todoInput" placeholder="새로운 할 일을 입력하세요..." maxlength="100">
-                    <button id="addBtn">추가</button>
-                    <button id="addDetailBtn" class="add-detail-btn">상세 추가</button>
                 </div>
             </section>
 
-            <section class="filter-section">
-                <div class="filter-buttons">
-                    <button class="filter-btn active" data-filter="all">전체</button>
-                    <button class="filter-btn" data-filter="pending">진행중</button>
-                    <button class="filter-btn" data-filter="completed">완료</button>
-                </div>
-                <div class="priority-filter">
-                    <select id="priorityFilter">
-                        <option value="all">모든 우선순위</option>
-                        <option value="high">높음</option>
-                        <option value="medium">보통</option>
-                        <option value="low">낮음</option>
-                    </select>
-                </div>
-            </section>
-
-            <section class="stats-section">
-                <div class="stats">
-                    <div class="stat-item clickable" data-filter="all">
-                        <span class="stat-number" id="totalTodos">0</span>
-                        <span class="stat-label">전체</span>
-                    </div>
-                    <div class="stat-item clickable" data-filter="pending">
-                        <span class="stat-number" id="pendingTodos">0</span>
-                        <span class="stat-label">진행중</span>
-                    </div>
-                    <div class="stat-item clickable" data-filter="completed">
-                        <span class="stat-number" id="completedTodos">0</span>
-                        <span class="stat-label">완료</span>
-                    </div>
-                </div>
-            </section>
 
             <section class="todo-list-section">
                 <!-- 진행중인 할일 섹션 -->
