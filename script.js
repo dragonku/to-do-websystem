@@ -13,23 +13,19 @@ class TodoManager {
         this.initializeElements();
         this.bindEvents();
         this.render();
-        this.updateStats();
+        this.updateSidebarCounts();
         this.checkRecurringTasks();
     }
 
     // DOM 요소 초기화
     initializeElements() {
         this.todoInput = document.getElementById('todoInput');
-        this.addBtn = document.getElementById('addBtn');
-        this.addDetailBtn = document.getElementById('addDetailBtn');
         this.todoList = document.getElementById('todoList');
         this.completedTodoList = document.getElementById('completedTodoList');
         this.completedSection = document.getElementById('completedSection');
         this.completedToggleIcon = document.getElementById('completedToggleIcon');
         this.completedSectionCount = document.getElementById('completedSectionCount');
         this.emptyState = document.getElementById('emptyState');
-        this.filterBtns = document.querySelectorAll('.filter-btn');
-        this.priorityFilter = document.getElementById('priorityFilter');
         this.clearAllBtn = document.getElementById('clearAllBtn');
         
         // 사이드바 요소들
@@ -38,12 +34,6 @@ class TodoManager {
         this.todayCount = document.getElementById('todayCount');
         this.importantCount = document.getElementById('importantCount');
         this.scheduledCount = document.getElementById('scheduledCount');
-        
-        // 통계 요소들
-        this.totalTodos = document.getElementById('totalTodos');
-        this.pendingTodos = document.getElementById('pendingTodos');
-        this.completedTodos = document.getElementById('completedTodos');
-        this.statItems = document.querySelectorAll('.stat-item.clickable');
         
         // 사이드 패널 요소들
         this.sidePanel = document.getElementById('sidePanel');
@@ -78,30 +68,8 @@ class TodoManager {
     // 이벤트 바인딩
     bindEvents() {
         // 할 일 추가
-        this.addBtn.addEventListener('click', () => this.addQuickTodo());
-        this.addDetailBtn.addEventListener('click', () => this.openSidePanel('add'));
         this.todoInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addQuickTodo();
-        });
-
-        // 필터링
-        this.filterBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.setFilter(e.target.dataset.filter);
-            });
-        });
-
-        // 통계 클릭 필터링
-        this.statItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                const filter = e.currentTarget.dataset.filter;
-                this.setFilter(filter);
-            });
-        });
-
-        this.priorityFilter.addEventListener('change', (e) => {
-            this.currentPriorityFilter = e.target.value;
-            this.render();
         });
 
         // 모든 할 일 삭제
@@ -165,23 +133,7 @@ class TodoManager {
     // 필터 설정
     setFilter(filter) {
         this.currentFilter = filter;
-        this.updateFilterButtons();
-        this.updateStatItems();
         this.render();
-    }
-
-    // 필터 버튼 업데이트
-    updateFilterButtons() {
-        this.filterBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.filter === this.currentFilter);
-        });
-    }
-
-    // 통계 항목 활성화 상태 업데이트
-    updateStatItems() {
-        this.statItems.forEach(item => {
-            item.classList.toggle('active', item.dataset.filter === this.currentFilter);
-        });
     }
 
     // 다음 ID 생성
@@ -216,7 +168,7 @@ class TodoManager {
         this.todos.unshift(newTodo);
         this.saveTodos();
         this.render();
-        this.updateStats();
+        this.updateSidebarCounts();
 
         this.todoInput.value = '';
         this.todoInput.focus();
@@ -426,7 +378,7 @@ class TodoManager {
 
         this.saveTodos();
         this.render();
-        this.updateStats();
+        this.updateSidebarCounts();
         this.closeSidePanelDialog();
     }
 
@@ -448,7 +400,7 @@ class TodoManager {
             }
             this.saveTodos();
             this.render();
-            this.updateStats();
+            this.updateSidebarCounts();
             
             const message = todo.completed ? '할 일을 완료했습니다!' : '할 일을 미완료로 변경했습니다.';
             this.showNotification(message, 'success');
@@ -520,7 +472,7 @@ class TodoManager {
         if (newTasksCreated > 0) {
             this.saveTodos();
             this.render();
-            this.updateStats();
+            this.updateSidebarCounts();
             this.showNotification(`${newTasksCreated}개의 반복 할일이 생성되었습니다.`, 'info');
         }
 
@@ -550,7 +502,7 @@ class TodoManager {
             todo.updatedAt = new Date().toISOString();
             this.saveTodos();
             this.render();
-            this.updateStats();
+            this.updateSidebarCounts();
             
             const message = todo.isImportant ? '중요한 할일로 표시되었습니다!' : '중요 표시가 해제되었습니다.';
             this.showNotification(message, 'success');
@@ -563,14 +515,17 @@ class TodoManager {
         if (todo) {
             todo.isMyDay = !todo.isMyDay;
             if (todo.isMyDay) {
-                // 마감일을 오늘로 설정
-                const today = new Date().toISOString().split('T')[0];
-                todo.dueDate = today;
+                // 마감일을 오늘로 설정 (로컬 시간 기준)
+                const today = new Date();
+                const todayStr = today.getFullYear() + '-' + 
+                    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(today.getDate()).padStart(2, '0');
+                todo.dueDate = todayStr;
             }
             todo.updatedAt = new Date().toISOString();
             this.saveTodos();
             this.render();
-            this.updateStats();
+            this.updateSidebarCounts();
             
             const message = todo.isMyDay ? '나의 하루에 추가되었습니다!' : '나의 하루에서 제거되었습니다.';
             this.showNotification(message, 'success');
@@ -583,7 +538,7 @@ class TodoManager {
             this.todos = this.todos.filter(t => t.id !== id);
             this.saveTodos();
             this.render();
-            this.updateStats();
+            this.updateSidebarCounts();
             this.showNotification('할 일이 삭제되었습니다.', 'success');
         }
     }
@@ -599,7 +554,7 @@ class TodoManager {
             this.todos = [];
             this.saveTodos();
             this.render();
-            this.updateStats();
+            this.updateSidebarCounts();
             this.showNotification('모든 할 일이 삭제되었습니다.', 'success');
         }
     }
@@ -749,10 +704,10 @@ class TodoManager {
         return `
             <li class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
                 <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} 
-                       onchange="todoManager.toggleTodo(${todo.id})">
-                <div class="todo-content">
+                       onchange="todoManager.toggleTodo(${todo.id})" onclick="event.stopPropagation()">
+                <div class="todo-content clickable" onclick="todoManager.openSidePanel('edit', ${todo.id})">
                     <div class="todo-main-row">
-                        <span class="todo-text clickable" onclick="todoManager.openSidePanel('edit', ${todo.id})">${this.escapeHtml(todo.text)}</span>
+                        <span class="todo-text">${this.escapeHtml(todo.text)}</span>
                         <div class="todo-indicators">
                             ${todo.isImportant ? '<span class="important-indicator" title="중요한 할일">⭐</span>' : ''}
                             ${todo.repeat !== 'none' ? `<span class="repeat-indicator" title="반복: ${this.getRepeatText(todo.repeat)}">🔄</span>` : ''}
@@ -787,19 +742,6 @@ class TodoManager {
         }
     }
 
-    // 통계 업데이트
-    updateStats() {
-        const total = this.todos.length;
-        const completed = this.todos.filter(t => t.completed).length;
-        const pending = total - completed;
-
-        this.totalTodos.textContent = total;
-        this.completedTodos.textContent = completed;
-        this.pendingTodos.textContent = pending;
-        
-        // 사이드바 카운트도 업데이트
-        this.updateSidebarCounts();
-    }
 
     // 우선순위 텍스트 변환
     getPriorityText(priority) {
@@ -1118,7 +1060,7 @@ class TodoManager {
             todo.updatedAt = new Date().toISOString();
             this.saveTodos();
             this.render();
-            this.updateStats();
+            this.updateSidebarCounts();
             
             const date = new Date(dateString);
             const formattedDate = date.toLocaleDateString('ko-KR');
@@ -1134,7 +1076,7 @@ class TodoManager {
             todo.updatedAt = new Date().toISOString();
             this.saveTodos();
             this.render();
-            this.updateStats();
+            this.updateSidebarCounts();
             this.showNotification('마감일이 제거되었습니다.', 'success');
         }
     }
