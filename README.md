@@ -88,6 +88,24 @@ todo-web-system/
 - Safari 12+
 - Edge 79+
 
+## GitHub Actions 🤖
+
+이 프로젝트는 Claude GitHub Actions를 포함합니다:
+
+### 설정 방법
+1. GitHub 저장소 Settings → Secrets and variables → Actions
+2. `ANTHROPIC_API_KEY` 시크릿 추가 (Claude API 키)
+3. Actions가 자동으로 활성화됩니다
+
+### 포함된 Actions
+- **Claude Code Review**: PR 생성 시 자동 코드 리뷰
+- **Claude Assistant**: 이슈 및 코멘트에 자동 응답
+
+### API 키 발급
+1. [Anthropic Console](https://console.anthropic.com/) 방문
+2. API Keys 섹션에서 새 키 생성
+3. GitHub 시크릿에 추가
+
 ## 개발자 정보 👨‍💻
 
 이 프로젝트는 Claude Code를 통해 개발되었습니다.
