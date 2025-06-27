@@ -7,7 +7,48 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <!-- 사이드바 -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>📋 할일목록</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <ul class="sidebar-menu">
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link active" data-filter="all">
+                        <span class="sidebar-icon">📋</span>
+                        <span class="sidebar-text">모두</span>
+                        <span class="sidebar-count" id="allCount">0</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link" data-filter="today">
+                        <span class="sidebar-icon">📅</span>
+                        <span class="sidebar-text">오늘할일</span>
+                        <span class="sidebar-count" id="todayCount">0</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link" data-filter="important">
+                        <span class="sidebar-icon">⭐</span>
+                        <span class="sidebar-text">중요</span>
+                        <span class="sidebar-count" id="importantCount">0</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link" data-filter="scheduled">
+                        <span class="sidebar-icon">🗓️</span>
+                        <span class="sidebar-text">계획한 일정</span>
+                        <span class="sidebar-count" id="scheduledCount">0</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content">
+        <div class="container">
         <header>
             <h1>📝 할일목록</h1>
         </header>
@@ -55,11 +96,27 @@
             </section>
 
             <section class="todo-list-section">
-                <ul id="todoList" class="todo-list">
-                    <!-- 할 일 항목들이 여기에 동적으로 추가됩니다 -->
-                </ul>
-                <div id="emptyState" class="empty-state">
-                    <p>📋 아직 할 일이 없습니다. 새로운 할 일을 추가해보세요!</p>
+                <!-- 진행중인 할일 섹션 -->
+                <div class="pending-todos-section">
+                    <ul id="todoList" class="todo-list">
+                        <!-- 진행중인 할 일 항목들이 여기에 동적으로 추가됩니다 -->
+                    </ul>
+                    <div id="emptyState" class="empty-state">
+                        <p>📋 아직 할 일이 없습니다. 새로운 할 일을 추가해보세요!</p>
+                    </div>
+                </div>
+
+                <!-- 완료된 할일 섹션 -->
+                <div id="completedSection" class="completed-section" style="display: none;">
+                    <div class="completed-header" onclick="todoManager.toggleCompletedSection()">
+                        <h3>
+                            <span id="completedToggleIcon" class="toggle-icon">▶</span>
+                            완료 (<span id="completedSectionCount">0</span>)
+                        </h3>
+                    </div>
+                    <ul id="completedTodoList" class="todo-list completed-todos" style="display: none;">
+                        <!-- 완료된 할 일 항목들이 여기에 동적으로 추가됩니다 -->
+                    </ul>
                 </div>
             </section>
         </main>
@@ -68,6 +125,7 @@
             <p>&copy; 2024 할일목록 | 생산성을 높이세요! 🚀</p>
             <button id="clearAllBtn" class="clear-all-btn">모든 할 일 삭제</button>
         </footer>
+        </div>
     </div>
 
     <!-- 사이드 패널 -->
@@ -111,6 +169,13 @@
                 </div>
                 
                 <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sideImportant">
+                        <span class="checkbox-text">⭐ 중요한 할일로 표시</span>
+                    </label>
+                </div>
+                
+                <div class="form-group">
                     <label for="sideFiles">파일 첨부</label>
                     <input type="file" id="sideFiles" multiple accept="image/*,.pdf,.doc,.docx,.txt">
                     <div id="fileList" class="file-list"></div>
@@ -144,6 +209,62 @@
 
     <!-- 배경 오버레이 -->
     <div id="overlay" class="overlay"></div>
+
+    <!-- 컨텍스트 메뉴 -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-item" data-action="addToMyDay">
+            <span class="context-icon">☀️</span>
+            나의 하루 추가
+        </div>
+        <div class="context-item" data-action="markImportant">
+            <span class="context-icon">⭐</span>
+            중요로 표시
+        </div>
+        <div class="context-item" data-action="markCompleted">
+            <span class="context-icon">✅</span>
+            완료됨으로 표시
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-item" data-action="dueTomorrow">
+            <span class="context-icon">📅</span>
+            내일까지
+        </div>
+        <div class="context-item" data-action="pickDate">
+            <span class="context-icon">🗓️</span>
+            날짜 선택
+        </div>
+        <div class="context-item" data-action="removeDueDate">
+            <span class="context-icon">🚫</span>
+            기한 제거
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-item delete-item" data-action="delete">
+            <span class="context-icon">🗑️</span>
+            삭제
+        </div>
+    </div>
+
+    <!-- 날짜 선택 모달 -->
+    <div id="dateModal" class="date-modal">
+        <div class="date-modal-content">
+            <div class="date-modal-header">
+                <h3>날짜 선택</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="date-modal-body">
+                <input type="date" id="datePickerInput">
+                <div class="date-quick-options">
+                    <button class="date-option" data-days="0">오늘</button>
+                    <button class="date-option" data-days="1">내일</button>
+                    <button class="date-option" data-days="7">다음 주</button>
+                </div>
+            </div>
+            <div class="date-modal-footer">
+                <button class="btn btn-secondary" id="cancelDatePicker">취소</button>
+                <button class="btn btn-primary" id="confirmDatePicker">확인</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

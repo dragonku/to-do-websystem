@@ -7,11 +7,14 @@ class TodoManager {
         this.nextId = this.getNextId();
         this.currentEditingId = null;
         this.attachedFiles = [];
+        this.completedSectionExpanded = false;
+        this.currentContextMenuTodoId = null;
         
         this.initializeElements();
         this.bindEvents();
         this.render();
         this.updateStats();
+        this.checkRecurringTasks();
     }
 
     // DOM 요소 초기화
@@ -20,10 +23,21 @@ class TodoManager {
         this.addBtn = document.getElementById('addBtn');
         this.addDetailBtn = document.getElementById('addDetailBtn');
         this.todoList = document.getElementById('todoList');
+        this.completedTodoList = document.getElementById('completedTodoList');
+        this.completedSection = document.getElementById('completedSection');
+        this.completedToggleIcon = document.getElementById('completedToggleIcon');
+        this.completedSectionCount = document.getElementById('completedSectionCount');
         this.emptyState = document.getElementById('emptyState');
         this.filterBtns = document.querySelectorAll('.filter-btn');
         this.priorityFilter = document.getElementById('priorityFilter');
         this.clearAllBtn = document.getElementById('clearAllBtn');
+        
+        // 사이드바 요소들
+        this.sidebarLinks = document.querySelectorAll('.sidebar-link');
+        this.allCount = document.getElementById('allCount');
+        this.todayCount = document.getElementById('todayCount');
+        this.importantCount = document.getElementById('importantCount');
+        this.scheduledCount = document.getElementById('scheduledCount');
         
         // 통계 요소들
         this.totalTodos = document.getElementById('totalTodos');
@@ -42,6 +56,7 @@ class TodoManager {
         this.fileList = document.getElementById('fileList');
         this.sideMemo = document.getElementById('sideMemo');
         this.sideCharCount = document.getElementById('sideCharCount');
+        this.sideImportant = document.getElementById('sideImportant');
         this.sideInfoGroup = document.getElementById('sideInfoGroup');
         this.sideCreatedDate = document.getElementById('sideCreatedDate');
         this.sideUpdatedDate = document.getElementById('sideUpdatedDate');
@@ -49,6 +64,15 @@ class TodoManager {
         this.cancelSide = document.getElementById('cancelSide');
         this.saveSide = document.getElementById('saveSide');
         this.overlay = document.getElementById('overlay');
+        
+        // 컨텍스트 메뉴 요소들
+        this.contextMenu = document.getElementById('contextMenu');
+        this.dateModal = document.getElementById('dateModal');
+        this.datePickerInput = document.getElementById('datePickerInput');
+        this.dateOptions = document.querySelectorAll('.date-option');
+        this.confirmDatePicker = document.getElementById('confirmDatePicker');
+        this.cancelDatePicker = document.getElementById('cancelDatePicker');
+        this.closeDateModal = document.querySelector('.close-modal');
     }
 
     // 이벤트 바인딩
@@ -104,6 +128,38 @@ class TodoManager {
 
         // 파일 선택 이벤트
         this.sideFiles.addEventListener('change', (e) => this.handleFileSelection(e));
+        
+        // 사이드바 메뉴 이벤트
+        this.sidebarLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const filter = e.currentTarget.dataset.filter;
+                this.setSidebarFilter(filter);
+            });
+        });
+        
+        // 컨텍스트 메뉴 이벤트
+        this.bindContextMenuEvents();
+        
+        // 날짜 선택 모달 이벤트
+        this.bindDateModalEvents();
+        
+        // 전역 클릭 이벤트 (컨텍스트 메뉴 닫기)
+        document.addEventListener('click', (e) => {
+            if (!this.contextMenu.contains(e.target)) {
+                this.hideContextMenu();
+            }
+        });
+        
+        // 할일 목록에 우클릭 이벤트 바인딩
+        document.addEventListener('contextmenu', (e) => {
+            const todoItem = e.target.closest('.todo-item');
+            if (todoItem) {
+                e.preventDefault();
+                const todoId = parseInt(todoItem.dataset.id);
+                this.showContextMenu(e.pageX, e.pageY, todoId);
+            }
+        });
     }
 
     // 필터 설정
@@ -153,7 +209,8 @@ class TodoManager {
             memo: '',
             repeat: 'none',
             files: [],
-            isMyDay: false
+            isMyDay: false,
+            isImportant: false
         };
 
         this.todos.unshift(newTodo);
@@ -204,6 +261,7 @@ class TodoManager {
         this.sidePriority.value = 'medium';
         this.sideDueDate.value = '';
         this.sideRepeat.value = 'none';
+        this.sideImportant.checked = false;
         this.sideFiles.value = '';
         this.sideMemo.value = '';
         this.sideCharCount.textContent = '0';
@@ -217,6 +275,7 @@ class TodoManager {
         this.sidePriority.value = todo.priority;
         this.sideDueDate.value = todo.dueDate || '';
         this.sideRepeat.value = todo.repeat || 'none';
+        this.sideImportant.checked = todo.isImportant || false;
         this.sideMemo.value = todo.memo || '';
         this.sideCharCount.textContent = (todo.memo || '').length;
         
@@ -321,6 +380,7 @@ class TodoManager {
         const newPriority = this.sidePriority.value;
         const newDueDate = this.sideDueDate.value || null;
         const newRepeat = this.sideRepeat.value;
+        const newImportant = this.sideImportant.checked;
         const newMemo = this.sideMemo.value.trim();
 
         if (!newText) {
@@ -337,6 +397,7 @@ class TodoManager {
                 todo.priority = newPriority;
                 todo.dueDate = newDueDate;
                 todo.repeat = newRepeat;
+                todo.isImportant = newImportant;
                 todo.memo = newMemo;
                 todo.files = [...this.attachedFiles];
                 todo.updatedAt = new Date().toISOString();
@@ -355,7 +416,8 @@ class TodoManager {
                 memo: newMemo,
                 repeat: newRepeat,
                 files: [...this.attachedFiles],
-                isMyDay: false
+                isMyDay: false,
+                isImportant: newImportant
             };
 
             this.todos.unshift(newTodo);
@@ -375,10 +437,14 @@ class TodoManager {
             todo.completed = !todo.completed;
             if (todo.completed) {
                 todo.completedAt = new Date().toISOString();
-                // 반복 작업 처리
-                this.handleRecurringTask(todo);
+                // 반복 할일인 경우 다음 반복 일정 설정
+                if (todo.repeat && todo.repeat !== 'none') {
+                    this.scheduleNextRecurrence(todo);
+                }
             } else {
                 delete todo.completedAt;
+                // 미완료로 변경 시 다음 반복 일정 제거
+                delete todo.nextRecurrenceDate;
             }
             this.saveTodos();
             this.render();
@@ -389,44 +455,106 @@ class TodoManager {
         }
     }
 
-    // 반복 작업 처리
-    handleRecurringTask(todo) {
-        if (todo.repeat === 'none') return;
+    // 다음 반복 일정 설정
+    scheduleNextRecurrence(todo) {
+        if (!todo.repeat || todo.repeat === 'none') return;
 
-        const newTodo = {
-            ...todo,
-            id: this.nextId++,
-            completed: false,
-            createdAt: new Date().toISOString(),
-            completedAt: null,
-            isMyDay: false
-        };
+        const baseDate = todo.dueDate ? new Date(todo.dueDate) : new Date();
+        let nextDate = new Date(baseDate);
 
-        // 다음 마감일 계산
-        if (todo.dueDate) {
-            const currentDue = new Date(todo.dueDate);
-            let nextDue = new Date(currentDue);
-
-            switch (todo.repeat) {
-                case 'daily':
-                    nextDue.setDate(currentDue.getDate() + 1);
-                    break;
-                case 'weekly':
-                    nextDue.setDate(currentDue.getDate() + 7);
-                    break;
-                case 'monthly':
-                    nextDue.setMonth(currentDue.getMonth() + 1);
-                    break;
-                case 'yearly':
-                    nextDue.setFullYear(currentDue.getFullYear() + 1);
-                    break;
-            }
-
-            newTodo.dueDate = nextDue.toISOString().split('T')[0];
+        switch (todo.repeat) {
+            case 'daily':
+                nextDate.setDate(baseDate.getDate() + 1);
+                break;
+            case 'weekly':
+                nextDate.setDate(baseDate.getDate() + 7);
+                break;
+            case 'monthly':
+                nextDate.setMonth(baseDate.getMonth() + 1);
+                break;
+            case 'yearly':
+                nextDate.setFullYear(baseDate.getFullYear() + 1);
+                break;
+            default:
+                return;
         }
 
-        this.todos.unshift(newTodo);
-        this.showNotification(`반복 작업이 생성되었습니다 (${this.getRepeatText(todo.repeat)})`, 'info');
+        todo.nextRecurrenceDate = nextDate.toISOString().split('T')[0];
+    }
+
+    // 반복 할일 자동 생성 확인
+    checkRecurringTasks() {
+        const today = new Date().toISOString().split('T')[0];
+        let newTasksCreated = 0;
+
+        // 완료된 반복 할일들을 확인
+        this.todos.forEach(todo => {
+            if (todo.completed && 
+                todo.repeat && 
+                todo.repeat !== 'none' && 
+                todo.nextRecurrenceDate &&
+                todo.nextRecurrenceDate <= today) {
+                
+                // 새로운 반복 할일 생성
+                const newTodo = {
+                    ...todo,
+                    id: this.nextId++,
+                    completed: false,
+                    createdAt: new Date().toISOString(),
+                    completedAt: null,
+                    updatedAt: null,
+                    isMyDay: false,
+                    dueDate: todo.nextRecurrenceDate,
+                    nextRecurrenceDate: null
+                };
+
+                this.todos.unshift(newTodo);
+                
+                // 원본 할일의 다음 반복 일정 제거
+                delete todo.nextRecurrenceDate;
+                
+                newTasksCreated++;
+            }
+        });
+
+        if (newTasksCreated > 0) {
+            this.saveTodos();
+            this.render();
+            this.updateStats();
+            this.showNotification(`${newTasksCreated}개의 반복 할일이 생성되었습니다.`, 'info');
+        }
+
+        // 매일 자정에 확인하도록 타이머 설정
+        this.scheduleNextCheck();
+    }
+
+    // 다음 자동 확인 일정 설정
+    scheduleNextCheck() {
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        
+        const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+        
+        setTimeout(() => {
+            this.checkRecurringTasks();
+        }, timeUntilMidnight);
+    }
+
+    // 중요 표시 토글
+    toggleImportant(id) {
+        const todo = this.todos.find(t => t.id === id);
+        if (todo) {
+            todo.isImportant = !todo.isImportant;
+            todo.updatedAt = new Date().toISOString();
+            this.saveTodos();
+            this.render();
+            this.updateStats();
+            
+            const message = todo.isImportant ? '중요한 할일로 표시되었습니다!' : '중요 표시가 해제되었습니다.';
+            this.showNotification(message, 'success');
+        }
     }
 
     // 나의 하루 토글
@@ -476,15 +604,107 @@ class TodoManager {
         }
     }
 
+    // 사이드바 필터 설정
+    setSidebarFilter(filter) {
+        this.currentFilter = filter;
+        this.updateSidebarLinks();
+        this.updatePageTitle(filter);
+        this.render();
+        this.updateSidebarCounts();
+    }
+
+    // 페이지 제목 업데이트
+    updatePageTitle(filter) {
+        const header = document.querySelector('header h1');
+        const titles = {
+            'all': '📋 할일목록',
+            'today': '📅 오늘할일', 
+            'important': '⭐ 중요',
+            'scheduled': '🗓️ 계획한 일정'
+        };
+        
+        if (header && titles[filter]) {
+            header.textContent = titles[filter];
+        }
+    }
+
+    // 사이드바 링크 업데이트
+    updateSidebarLinks() {
+        this.sidebarLinks.forEach(link => {
+            link.classList.toggle('active', link.dataset.filter === this.currentFilter);
+        });
+    }
+
+    // 사이드바 카운트 업데이트
+    updateSidebarCounts() {
+        const all = this.todos.length;
+        const today = this.getTodayTodos().length;
+        const important = this.getImportantTodos().length;
+        const scheduled = this.getScheduledTodos().length;
+
+        this.allCount.textContent = all;
+        this.todayCount.textContent = today;
+        this.importantCount.textContent = important;
+        this.scheduledCount.textContent = scheduled;
+    }
+
+    // 오늘 할일 가져오기
+    getTodayTodos() {
+        const today = new Date().toISOString().split('T')[0];
+        return this.todos.filter(todo => 
+            !todo.completed && (
+                todo.isMyDay || 
+                todo.dueDate === today
+            )
+        );
+    }
+
+    // 중요한 할일 가져오기  
+    getImportantTodos() {
+        return this.todos.filter(todo => 
+            !todo.completed && todo.isImportant === true
+        );
+    }
+
+    // 계획한 일정 가져오기 (7일간)
+    getScheduledTodos() {
+        const today = new Date();
+        const weekFromNow = new Date();
+        weekFromNow.setDate(today.getDate() + 7);
+        
+        return this.todos.filter(todo => {
+            if (todo.completed || !todo.dueDate) return false;
+            
+            const dueDate = new Date(todo.dueDate);
+            return dueDate >= today && dueDate <= weekFromNow;
+        });
+    }
+
     // 필터링된 할 일 목록 가져오기
     getFilteredTodos() {
         let filtered = this.todos;
 
-        // 상태 필터
-        if (this.currentFilter === 'completed') {
-            filtered = filtered.filter(t => t.completed);
-        } else if (this.currentFilter === 'pending') {
-            filtered = filtered.filter(t => !t.completed);
+        // 사이드바 필터
+        switch (this.currentFilter) {
+            case 'today':
+                filtered = this.getTodayTodos();
+                break;
+            case 'important':
+                filtered = this.getImportantTodos();
+                break;
+            case 'scheduled':
+                filtered = this.getScheduledTodos();
+                break;
+            case 'completed':
+                filtered = filtered.filter(t => t.completed);
+                break;
+            case 'pending':
+                filtered = filtered.filter(t => !t.completed);
+                break;
+            case 'all':
+            default:
+                // 모든 할일 표시
+                break;
         }
 
         // 우선순위 필터
@@ -499,42 +719,72 @@ class TodoManager {
     render() {
         const filteredTodos = this.getFilteredTodos();
         
-        if (filteredTodos.length === 0) {
+        // 완료된 할일과 진행중인 할일 분리
+        const pendingTodos = filteredTodos.filter(todo => !todo.completed);
+        
+        // 완료된 할일은 항상 전체 할일에서 가져오기 (필터 무시)
+        const allCompletedTodos = this.todos.filter(todo => todo.completed);
+        
+        // 진행중인 할일 렌더링
+        if (pendingTodos.length === 0) {
             this.todoList.innerHTML = '';
             this.emptyState.classList.remove('hidden');
-            return;
+        } else {
+            this.emptyState.classList.add('hidden');
+            this.todoList.innerHTML = pendingTodos.map(todo => this.renderTodoItem(todo)).join('');
         }
-
-        this.emptyState.classList.add('hidden');
         
-        this.todoList.innerHTML = filteredTodos.map(todo => `
+        // 완료된 할일 섹션 처리
+        if (allCompletedTodos.length > 0) {
+            this.completedSection.style.display = 'block';
+            this.completedSectionCount.textContent = allCompletedTodos.length;
+            this.completedTodoList.innerHTML = allCompletedTodos.map(todo => this.renderTodoItem(todo)).join('');
+        } else {
+            this.completedSection.style.display = 'none';
+        }
+    }
+
+    // 할일 아이템 렌더링 헬퍼 함수
+    renderTodoItem(todo) {
+        return `
             <li class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
                 <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} 
                        onchange="todoManager.toggleTodo(${todo.id})">
                 <div class="todo-content">
-                    <span class="todo-text clickable" onclick="todoManager.openSidePanel('edit', ${todo.id})">${this.escapeHtml(todo.text)}</span>
-                    <span class="priority-badge priority-${todo.priority}">
-                        ${this.getPriorityText(todo.priority)}
-                    </span>
-                    ${this.getDueDateHtml(todo.dueDate)}
-                    ${todo.repeat !== 'none' ? `<span class="repeat-indicator" title="반복: ${this.getRepeatText(todo.repeat)}">🔄</span>` : ''}
-                    ${todo.files && todo.files.length > 0 ? `<span class="attachment-indicator" title="${todo.files.length}개 파일 첨부">📎</span>` : ''}
-                    ${todo.memo ? '<span class="memo-indicator" title="메모 있음">📝</span>' : ''}
-                    <span class="todo-date">${this.formatDate(todo.createdAt)}${todo.updatedAt ? ' (수정됨)' : ''}</span>
-                </div>
-                <div class="todo-actions">
-                    <button class="my-day-btn ${todo.isMyDay ? 'active' : ''}" onclick="todoManager.toggleMyDay(${todo.id})" title="나의 하루에 추가">
-                        ${todo.isMyDay ? '⭐' : '☆'}
-                    </button>
-                    <button class="edit-btn" onclick="todoManager.openSidePanel('edit', ${todo.id})" ${todo.completed ? 'disabled' : ''}>
-                        수정
-                    </button>
-                    <button class="delete-btn" onclick="todoManager.deleteTodo(${todo.id})">
-                        삭제
-                    </button>
+                    <div class="todo-main-row">
+                        <span class="todo-text clickable" onclick="todoManager.openSidePanel('edit', ${todo.id})">${this.escapeHtml(todo.text)}</span>
+                        <div class="todo-indicators">
+                            ${todo.isImportant ? '<span class="important-indicator" title="중요한 할일">⭐</span>' : ''}
+                            ${todo.repeat !== 'none' ? `<span class="repeat-indicator" title="반복: ${this.getRepeatText(todo.repeat)}">🔄</span>` : ''}
+                            ${todo.files && todo.files.length > 0 ? `<span class="attachment-indicator" title="${todo.files.length}개 파일 첨부">📎</span>` : ''}
+                            ${todo.memo ? '<span class="memo-indicator" title="메모 있음">📝</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="todo-meta">
+                        <span class="priority-badge priority-${todo.priority}">
+                            ${this.getPriorityText(todo.priority)}
+                        </span>
+                        ${this.getDueDateHtml(todo.dueDate)}
+                        <span class="todo-date">${this.formatDate(todo.createdAt)}${todo.updatedAt ? ' (수정됨)' : ''}</span>
+                    </div>
                 </div>
             </li>
-        `).join('');
+        `;
+    }
+
+    // 완료된 섹션 토글
+    toggleCompletedSection() {
+        this.completedSectionExpanded = !this.completedSectionExpanded;
+        
+        if (this.completedSectionExpanded) {
+            this.completedTodoList.style.display = 'block';
+            this.completedToggleIcon.textContent = '▼';
+            this.completedToggleIcon.classList.add('expanded');
+        } else {
+            this.completedTodoList.style.display = 'none';
+            this.completedToggleIcon.textContent = '▶';
+            this.completedToggleIcon.classList.remove('expanded');
+        }
     }
 
     // 통계 업데이트
@@ -546,6 +796,9 @@ class TodoManager {
         this.totalTodos.textContent = total;
         this.completedTodos.textContent = completed;
         this.pendingTodos.textContent = pending;
+        
+        // 사이드바 카운트도 업데이트
+        this.updateSidebarCounts();
     }
 
     // 우선순위 텍스트 변환
@@ -676,7 +929,14 @@ class TodoManager {
     loadTodos() {
         try {
             const saved = localStorage.getItem('todos');
-            return saved ? JSON.parse(saved) : [];
+            const todos = saved ? JSON.parse(saved) : [];
+            
+            // 기존 데이터 정리 - repeat 값이 없는 할일들에 'none' 설정
+            return todos.map(todo => ({
+                ...todo,
+                repeat: todo.repeat || 'none',
+                isImportant: todo.isImportant || false
+            }));
         } catch (error) {
             console.error('할 일 목록을 불러오는 중 오류 발생:', error);
             return [];
@@ -691,6 +951,214 @@ class TodoManager {
             console.error('할 일 목록을 저장하는 중 오류 발생:', error);
             this.showNotification('데이터 저장 중 오류가 발생했습니다.', 'error');
         }
+    }
+    
+    // 컨텍스트 메뉴 이벤트 바인딩
+    bindContextMenuEvents() {
+        // 컨텍스트 메뉴 항목 클릭 이벤트
+        this.contextMenu.addEventListener('click', (e) => {
+            const contextItem = e.target.closest('.context-item');
+            if (!contextItem) return;
+            
+            const action = contextItem.dataset.action;
+            this.handleContextMenuAction(action);
+            this.hideContextMenu();
+        });
+    }
+    
+    // 날짜 선택 모달 이벤트 바인딩
+    bindDateModalEvents() {
+        // 날짜 옵션 버튼 클릭
+        this.dateOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                // 기존 선택 해제
+                this.dateOptions.forEach(opt => opt.classList.remove('selected'));
+                // 현재 선택 표시
+                e.target.classList.add('selected');
+                
+                const days = parseInt(e.target.dataset.days);
+                const date = new Date();
+                date.setDate(date.getDate() + days);
+                this.datePickerInput.value = date.toISOString().split('T')[0];
+            });
+        });
+        
+        // 확인 버튼
+        this.confirmDatePicker.addEventListener('click', () => {
+            const selectedDate = this.datePickerInput.value;
+            if (selectedDate && this.currentContextMenuTodoId) {
+                this.setTodoDueDate(this.currentContextMenuTodoId, selectedDate);
+            }
+            this.hideDateModal();
+        });
+        
+        // 취소 버튼
+        this.cancelDatePicker.addEventListener('click', () => {
+            this.hideDateModal();
+        });
+        
+        // 닫기 버튼
+        this.closeDateModal.addEventListener('click', () => {
+            this.hideDateModal();
+        });
+        
+        // 모달 배경 클릭
+        this.dateModal.addEventListener('click', (e) => {
+            if (e.target === this.dateModal) {
+                this.hideDateModal();
+            }
+        });
+    }
+    
+    // 컨텍스트 메뉴 표시
+    showContextMenu(x, y, todoId) {
+        this.currentContextMenuTodoId = todoId;
+        
+        // 메뉴 위치 설정
+        this.contextMenu.style.left = x + 'px';
+        this.contextMenu.style.top = y + 'px';
+        this.contextMenu.classList.add('show');
+        
+        // 화면 밖으로 나가지 않도록 조정
+        const rect = this.contextMenu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            this.contextMenu.style.left = (x - rect.width) + 'px';
+        }
+        if (rect.bottom > window.innerHeight) {
+            this.contextMenu.style.top = (y - rect.height) + 'px';
+        }
+        
+        // 할일 상태에 따라 메뉴 항목 업데이트
+        this.updateContextMenuItems(todoId);
+    }
+    
+    // 컨텍스트 메뉴 숨기기
+    hideContextMenu() {
+        this.contextMenu.classList.remove('show');
+        this.currentContextMenuTodoId = null;
+    }
+    
+    // 컨텍스트 메뉴 항목 업데이트
+    updateContextMenuItems(todoId) {
+        const todo = this.todos.find(t => t.id === todoId);
+        if (!todo) return;
+        
+        // 중요로 표시/해제 텍스트 변경
+        const importantItem = this.contextMenu.querySelector('[data-action="markImportant"]');
+        if (importantItem) {
+            importantItem.innerHTML = `
+                <span class="context-icon">⭐</span>
+                ${todo.isImportant ? '중요 표시 해제' : '중요로 표시'}
+            `;
+        }
+        
+        // 완료됨으로 표시/해제 텍스트 변경
+        const completedItem = this.contextMenu.querySelector('[data-action="markCompleted"]');
+        if (completedItem) {
+            completedItem.innerHTML = `
+                <span class="context-icon">✅</span>
+                ${todo.completed ? '미완료로 표시' : '완료됨으로 표시'}
+            `;
+        }
+        
+        // 나의 하루 추가/제거 텍스트 변경
+        const myDayItem = this.contextMenu.querySelector('[data-action="addToMyDay"]');
+        if (myDayItem) {
+            myDayItem.innerHTML = `
+                <span class="context-icon">☀️</span>
+                ${todo.isMyDay ? '나의 하루에서 제거' : '나의 하루 추가'}
+            `;
+        }
+    }
+    
+    // 컨텍스트 메뉴 액션 처리
+    handleContextMenuAction(action) {
+        if (!this.currentContextMenuTodoId) return;
+        
+        const todoId = this.currentContextMenuTodoId;
+        
+        switch (action) {
+            case 'addToMyDay':
+                this.toggleMyDay(todoId);
+                break;
+            case 'markImportant':
+                this.toggleImportant(todoId);
+                break;
+            case 'markCompleted':
+                this.toggleTodo(todoId);
+                break;
+            case 'dueTomorrow':
+                this.setTomorrowDueDate(todoId);
+                break;
+            case 'pickDate':
+                this.showDatePicker();
+                break;
+            case 'removeDueDate':
+                this.removeDueDate(todoId);
+                break;
+            case 'delete':
+                this.deleteTodo(todoId);
+                break;
+        }
+    }
+    
+    // 내일 마감일 설정
+    setTomorrowDueDate(todoId) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dateString = tomorrow.toISOString().split('T')[0];
+        this.setTodoDueDate(todoId, dateString);
+    }
+    
+    // 마감일 설정
+    setTodoDueDate(todoId, dateString) {
+        const todo = this.todos.find(t => t.id === todoId);
+        if (todo) {
+            todo.dueDate = dateString;
+            todo.updatedAt = new Date().toISOString();
+            this.saveTodos();
+            this.render();
+            this.updateStats();
+            
+            const date = new Date(dateString);
+            const formattedDate = date.toLocaleDateString('ko-KR');
+            this.showNotification(`마감일이 ${formattedDate}로 설정되었습니다.`, 'success');
+        }
+    }
+    
+    // 마감일 제거
+    removeDueDate(todoId) {
+        const todo = this.todos.find(t => t.id === todoId);
+        if (todo) {
+            todo.dueDate = null;
+            todo.updatedAt = new Date().toISOString();
+            this.saveTodos();
+            this.render();
+            this.updateStats();
+            this.showNotification('마감일이 제거되었습니다.', 'success');
+        }
+    }
+    
+    // 날짜 선택기 표시
+    showDatePicker() {
+        // 현재 할일의 마감일로 초기화
+        const todo = this.todos.find(t => t.id === this.currentContextMenuTodoId);
+        if (todo && todo.dueDate) {
+            this.datePickerInput.value = todo.dueDate;
+        } else {
+            this.datePickerInput.value = '';
+        }
+        
+        // 선택된 옵션 초기화
+        this.dateOptions.forEach(opt => opt.classList.remove('selected'));
+        
+        this.dateModal.classList.add('show');
+        this.datePickerInput.focus();
+    }
+    
+    // 날짜 선택 모달 숨기기
+    hideDateModal() {
+        this.dateModal.classList.remove('show');
     }
 }
 
