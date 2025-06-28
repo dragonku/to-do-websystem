@@ -1,100 +1,52 @@
-name: Claude Assistant
+name: Issue Helper
 
 on:
   issues:
     types: [opened, edited]
   issue_comment:
     types: [created]
-  workflow_dispatch:
-    inputs:
-      task:
-        description: 'Task for Claude to perform'
-        required: true
-        type: string
 
 jobs:
-  claude-assistant:
+  issue-helper:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
       issues: write
-      pull-requests: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Process Issue or Comment
-        if: github.event_name != 'workflow_dispatch'
-        uses: anthropics/claude-code-action@v1
-        with:
-          api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: claude-3-5-sonnet-20241022
-          prompt: |
-            You are a helpful assistant for this TO-DO List web application repository.
-            
-            Repository context:
-            - This is a web-based todo management system
-            - Built with HTML, CSS, and JavaScript
-            - Features include task management, priorities, due dates, and file attachments
-            
-            Please help with:
-            1. Bug reports and troubleshooting
-            2. Feature requests and implementation suggestions  
-            3. Code improvements and optimizations
-            4. Documentation updates
-            5. General questions about the application
-            
-            Issue/Comment: ${{ github.event.issue.body || github.event.comment.body }}
-            
-            Provide helpful, actionable responses. If code changes are needed, suggest specific implementations.
-          max-tokens: 3000
-
-      - name: Manual Task Execution
-        if: github.event_name == 'workflow_dispatch'
-        uses: anthropics/claude-code-action@v1
-        with:
-          api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: claude-3-5-sonnet-20241022
-          prompt: |
-            You are a development assistant for this TO-DO List web application.
-            
-            Task to perform: ${{ github.event.inputs.task }}
-            
-            Please analyze the current codebase and provide:
-            1. Implementation plan
-            2. Code changes needed
-            3. Testing recommendations
-            4. Documentation updates if needed
-            
-            Focus on maintaining code quality and following best practices.
-          max-tokens: 4000
-
-      - name: Comment Response
-        if: github.event_name == 'issues' || github.event_name == 'issue_comment'
+      - name: Auto-comment on new issue
+        if: github.event_name == 'issues' && github.event.action == 'opened'
         uses: actions/github-script@v7
         with:
           script: |
             const issueNumber = context.issue.number;
-            const response = `## 🤖 Claude Assistant Response
+            const response = `## 👋 Welcome to the TO-DO List Web Application!
             
-            Thank you for your ${github.event_name === 'issues' ? 'issue' : 'comment'}! 
+            Thank you for opening this issue! This is a web-based todo management system built with HTML, CSS, and JavaScript.
             
-            I've analyzed your request and provided feedback in the workflow logs. 
-            For detailed assistance, please check the [workflow run logs](${context.payload.repository.html_url}/actions/runs/${context.runId}).
+            ### Features Include:
+            - Task management with priorities and due dates
+            - File attachments and memos
+            - Recurring task support
+            - Microsoft TO-DO style interface
+            - Dark theme design
             
-            ### Quick Help
-            - 🐛 **Bug Reports**: Include steps to reproduce and expected behavior
-            - ✨ **Feature Requests**: Describe the desired functionality and use case
-            - ❓ **Questions**: Feel free to ask about any aspect of the application
+            ### Please provide:
+            - 🐛 **For Bug Reports**: Steps to reproduce, expected vs actual behavior
+            - ✨ **For Feature Requests**: Detailed description and use case
+            - ❓ **For Questions**: Specific area you need help with
+            
+            ### Quick Links:
+            - [Open the App](https://dragonku.github.io/to-do-websystem/) (if deployed)
+            - [Source Code](/tree/main)
+            - [Recent Changes](/pulls?q=is%3Apr+is%3Aclosed)
+            
+            A maintainer will review your issue soon!
             
             ---
-            *Powered by Claude Assistant Action*`;
+            *Automated response*`;
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,
