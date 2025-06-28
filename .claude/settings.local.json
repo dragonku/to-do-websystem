@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(gh pr create:*)",
+      "Bash(mkdir:*)",
+      "Bash(git commit:*)",
+      "Bash(gh auth:*)",
+      "Bash(grep:*)",
+      "Bash(GH_TOKEN=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 gh pr create --title \"Microsoft TO-DO Style Dark Theme with Advanced Features\" --body \"$(cat <<'EOF'\n## Summary\nComplete redesign and feature enhancement of the TODO web system:\n\n### 🎨 UI/UX Improvements\n- **Microsoft TO-DO Style Design**: Modern dark theme with Microsoft Fluent Design colors\n- **Responsive Sidebar Navigation**: Smart filtering with visual indicators\n- **Collapsible Completed Section**: Clean separation of active and completed tasks\n- **Contextual Right-Click Menu**: Quick actions for task management\n\n### ✨ New Features\n- **Smart Filtering System**: \n  - 📋 All tasks\n  - 📅 Today's tasks (due today or marked as \"My Day\")\n  - ⭐ Important tasks\n  - 🗓️ Scheduled tasks (next 7 days)\n- **Advanced Task Properties**:\n  - Importance marking with visual indicators\n  - Due date management with status colors\n  - File attachments support\n  - Memo/notes functionality\n  - Recurring task scheduling\n- **Intelligent Recurring Tasks**: Automatic creation based on completion cycles\n- **Dynamic Header Updates**: Synchronized with sidebar navigation\n\n### 🔧 Technical Enhancements\n- Dark theme color palette with proper contrast ratios\n- Improved accessibility and keyboard navigation\n- Enhanced responsive design for mobile devices\n- Optimized performance with efficient rendering\n- Comprehensive task metadata management\n\n### 🎯 User Experience\n- Intuitive task creation with quick add and detailed forms\n- Visual task indicators (importance, attachments, due dates)\n- Smooth animations and transitions\n- Contextual tooltips and status information\n\n## Test plan\n- [x] Verify dark theme consistency across all components\n- [x] Test sidebar navigation and filtering functionality\n- [x] Validate task creation with all property types\n- [x] Confirm recurring task automation works correctly\n- [x] Test responsive design on various screen sizes\n- [x] Verify accessibility features and keyboard navigation\n\n🤖 Generated with [Claude Code](https://claude.ai/code)\nEOF\n)\")",
+      "Bash(rg:*)",
+      "Bash(python:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  }
+}
