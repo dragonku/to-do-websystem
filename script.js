@@ -727,10 +727,12 @@ class TodoManager {
             filtered = filtered.filter(t => t.priority === this.currentPriorityFilter);
         }
 
-        // 검색 필터
+        // 검색 필터 - 검색 시에는 모든 필터 무시하고 전체 할일에서 검색
         if (this.searchQuery.trim()) {
             const query = this.searchQuery.toLowerCase().trim();
-            filtered = filtered.filter(todo => {
+            
+            // 검색 시에는 모든 할일에서 검색 (모든 필터 무시)
+            filtered = this.todos.filter(todo => {
                 return todo.text.toLowerCase().includes(query) ||
                        (todo.memo && todo.memo.toLowerCase().includes(query)) ||
                        this.getPriorityText(todo.priority).toLowerCase().includes(query) ||
