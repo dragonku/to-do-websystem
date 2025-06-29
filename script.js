@@ -2,16 +2,27 @@
 class TodoManager {
     constructor() {
         this.todos = this.loadTodos();
+        this.lists = this.loadLists();
         this.currentFilter = 'all';
+        this.currentList = null;
         this.currentPriorityFilter = 'all';
+        this.searchQuery = '';
+        this.sortBy = 'newest';
+        this.sortOrder = 'desc'; // 'asc' or 'desc'
         this.nextId = this.getNextId();
+        this.nextListId = this.getNextListId();
         this.currentEditingId = null;
         this.attachedFiles = [];
         this.completedSectionExpanded = false;
         this.currentContextMenuTodoId = null;
+        this.isManagingLists = false;
+        this.settings = this.loadSettings();
         
         this.initializeElements();
         this.bindEvents();
+        this.bindListEvents();
+        this.applySettings();
+        this.renderLists();
         this.render();
         this.updateSidebarCounts();
         this.checkRecurringTasks();
@@ -39,6 +50,7 @@ class TodoManager {
         this.sidePanel = document.getElementById('sidePanel');
         this.sidePanelTitle = document.getElementById('sidePanelTitle');
         this.sideTitle = document.getElementById('sideTitle');
+        this.sideList = document.getElementById('sideList');
         this.sidePriority = document.getElementById('sidePriority');
         this.sideDueDate = document.getElementById('sideDueDate');
         this.sideRepeat = document.getElementById('sideRepeat');
@@ -63,6 +75,20 @@ class TodoManager {
         this.confirmDatePicker = document.getElementById('confirmDatePicker');
         this.cancelDatePicker = document.getElementById('cancelDatePicker');
         this.closeDateModal = document.querySelector('.close-modal');
+        
+        // 검색 및 정렬 요소들
+        this.sidebarSearchInput = document.getElementById('sidebarSearchInput');
+        this.clearSidebarSearch = document.getElementById('clearSidebarSearch');
+        this.sortSelect = document.getElementById('sortSelect');
+        this.toggleSortOrder = document.getElementById('toggleSortOrder');
+        
+        // 설정 요소들
+        this.settingsBtn = document.getElementById('settingsBtn');
+        this.settingsModal = document.getElementById('settingsModal');
+        
+        // 목록 관련 요소들
+        this.addListBtn = document.getElementById('addListBtn');
+        this.listContextMenu = document.getElementById('listContextMenu');
     }
 
     // 이벤트 바인딩
@@ -106,6 +132,12 @@ class TodoManager {
             });
         });
         
+        // 검색 및 정렬 이벤트
+        this.bindSearchSortEvents();
+        
+        // 설정 이벤트
+        this.bindSettingsEvents();
+        
         // 컨텍스트 메뉴 이벤트
         this.bindContextMenuEvents();
         
@@ -141,6 +173,11 @@ class TodoManager {
         return this.todos.length > 0 ? Math.max(...this.todos.map(t => t.id)) + 1 : 1;
     }
 
+    // 다음 목록 ID 생성
+    getNextListId() {
+        return this.lists.length > 0 ? Math.max(...this.lists.map(l => l.id)) + 1 : 1;
+    }
+
     // 빠른 할 일 추가
     addQuickTodo() {
         const text = this.todoInput.value.trim();
@@ -162,13 +199,15 @@ class TodoManager {
             repeat: 'none',
             files: [],
             isMyDay: false,
-            isImportant: false
+            isImportant: false,
+            listId: this.currentList
         };
 
         this.todos.unshift(newTodo);
         this.saveTodos();
         this.render();
         this.updateSidebarCounts();
+        this.renderLists();
 
         this.todoInput.value = '';
         this.todoInput.focus();
@@ -180,6 +219,9 @@ class TodoManager {
     openSidePanel(mode, todoId = null) {
         this.currentEditingId = todoId;
         this.attachedFiles = [];
+
+        // 목록 옵션을 업데이트
+        this.populateListOptions();
 
         if (mode === 'add') {
             this.sidePanelTitle.textContent = '할 일 추가';
@@ -210,6 +252,7 @@ class TodoManager {
     // 사이드 폼 초기화
     resetSideForm() {
         this.sideTitle.value = '';
+        this.sideList.value = this.currentList || 1; // 현재 선택된 목록 또는 기본 목록
         this.sidePriority.value = 'medium';
         this.sideDueDate.value = '';
         this.sideRepeat.value = 'none';
@@ -224,6 +267,7 @@ class TodoManager {
     // 사이드 폼 채우기
     fillSideForm(todo) {
         this.sideTitle.value = todo.text;
+        this.sideList.value = todo.listId || 1; // 기본 목록(1) 또는 할당된 목록
         this.sidePriority.value = todo.priority;
         this.sideDueDate.value = todo.dueDate || '';
         this.sideRepeat.value = todo.repeat || 'none';
@@ -329,6 +373,7 @@ class TodoManager {
     // 사이드 패널 변경사항 저장
     saveSideChanges() {
         const newText = this.sideTitle.value.trim();
+        const newListId = parseInt(this.sideList.value);
         const newPriority = this.sidePriority.value;
         const newDueDate = this.sideDueDate.value || null;
         const newRepeat = this.sideRepeat.value;
@@ -346,6 +391,7 @@ class TodoManager {
             const todo = this.todos.find(t => t.id === this.currentEditingId);
             if (todo) {
                 todo.text = newText;
+                todo.listId = newListId;
                 todo.priority = newPriority;
                 todo.dueDate = newDueDate;
                 todo.repeat = newRepeat;
@@ -361,6 +407,7 @@ class TodoManager {
             const newTodo = {
                 id: this.nextId++,
                 text: newText,
+                listId: newListId,
                 priority: newPriority,
                 completed: false,
                 createdAt: new Date().toISOString(),
@@ -379,6 +426,7 @@ class TodoManager {
         this.saveTodos();
         this.render();
         this.updateSidebarCounts();
+        this.renderLists();
         this.closeSidePanelDialog();
     }
 
@@ -401,6 +449,7 @@ class TodoManager {
             this.saveTodos();
             this.render();
             this.updateSidebarCounts();
+            this.renderLists();
             
             const message = todo.completed ? '할 일을 완료했습니다!' : '할 일을 미완료로 변경했습니다.';
             this.showNotification(message, 'success');
@@ -457,7 +506,8 @@ class TodoManager {
                     updatedAt: null,
                     isMyDay: false,
                     dueDate: todo.nextRecurrenceDate,
-                    nextRecurrenceDate: null
+                    nextRecurrenceDate: null,
+                    listId: todo.listId
                 };
 
                 this.todos.unshift(newTodo);
@@ -503,6 +553,7 @@ class TodoManager {
             this.saveTodos();
             this.render();
             this.updateSidebarCounts();
+            this.renderLists();
             
             const message = todo.isImportant ? '중요한 할일로 표시되었습니다!' : '중요 표시가 해제되었습니다.';
             this.showNotification(message, 'success');
@@ -526,6 +577,7 @@ class TodoManager {
             this.saveTodos();
             this.render();
             this.updateSidebarCounts();
+            this.renderLists();
             
             const message = todo.isMyDay ? '나의 하루에 추가되었습니다!' : '나의 하루에서 제거되었습니다.';
             this.showNotification(message, 'success');
@@ -539,6 +591,7 @@ class TodoManager {
             this.saveTodos();
             this.render();
             this.updateSidebarCounts();
+            this.renderLists();
             this.showNotification('할 일이 삭제되었습니다.', 'success');
         }
     }
@@ -555,6 +608,7 @@ class TodoManager {
             this.saveTodos();
             this.render();
             this.updateSidebarCounts();
+            this.renderLists();
             this.showNotification('모든 할 일이 삭제되었습니다.', 'success');
         }
     }
@@ -562,6 +616,7 @@ class TodoManager {
     // 사이드바 필터 설정
     setSidebarFilter(filter) {
         this.currentFilter = filter;
+        this.currentList = null; // 필터 선택시 목록 선택 해제
         this.updateSidebarLinks();
         this.updatePageTitle(filter);
         this.render();
@@ -592,7 +647,7 @@ class TodoManager {
 
     // 사이드바 카운트 업데이트
     updateSidebarCounts() {
-        const all = this.todos.length;
+        const all = this.todos.filter(t => !t.completed).length;
         const today = this.getTodayTodos().length;
         const important = this.getImportantTodos().length;
         const scheduled = this.getScheduledTodos().length;
@@ -639,6 +694,11 @@ class TodoManager {
     getFilteredTodos() {
         let filtered = this.todos;
 
+        // 현재 목록 필터
+        if (this.currentList) {
+            filtered = filtered.filter(t => t.listId === this.currentList);
+        }
+
         // 사이드바 필터
         switch (this.currentFilter) {
             case 'today':
@@ -666,6 +726,20 @@ class TodoManager {
         if (this.currentPriorityFilter !== 'all') {
             filtered = filtered.filter(t => t.priority === this.currentPriorityFilter);
         }
+
+        // 검색 필터
+        if (this.searchQuery.trim()) {
+            const query = this.searchQuery.toLowerCase().trim();
+            filtered = filtered.filter(todo => {
+                return todo.text.toLowerCase().includes(query) ||
+                       (todo.memo && todo.memo.toLowerCase().includes(query)) ||
+                       this.getPriorityText(todo.priority).toLowerCase().includes(query) ||
+                       (todo.dueDate && todo.dueDate.includes(query));
+            });
+        }
+
+        // 정렬 적용
+        filtered = this.applySorting(filtered);
 
         return filtered;
     }
@@ -707,20 +781,21 @@ class TodoManager {
                        onchange="todoManager.toggleTodo(${todo.id})" onclick="event.stopPropagation()">
                 <div class="todo-content clickable" onclick="todoManager.openSidePanel('edit', ${todo.id})">
                     <div class="todo-main-row">
-                        <span class="todo-text">${this.escapeHtml(todo.text)}</span>
-                        <div class="todo-indicators">
-                            ${todo.isImportant ? '<span class="important-indicator" title="중요한 할일">⭐</span>' : ''}
-                            ${todo.repeat !== 'none' ? `<span class="repeat-indicator" title="반복: ${this.getRepeatText(todo.repeat)}">🔄</span>` : ''}
-                            ${todo.files && todo.files.length > 0 ? `<span class="attachment-indicator" title="${todo.files.length}개 파일 첨부">📎</span>` : ''}
-                            ${todo.memo ? '<span class="memo-indicator" title="메모 있음">📝</span>' : ''}
-                        </div>
+                        <span class="todo-text">${this.highlightSearchTerm(todo.text)}</span>
+                        <span class="important-indicator ${todo.isImportant ? 'active' : ''}" 
+                              title="${todo.isImportant ? '중요 표시 해제' : '중요로 표시'}"
+                              onclick="event.stopPropagation(); todoManager.toggleImportant(${todo.id})">
+                            ${todo.isImportant ? '★' : '☆'}
+                        </span>
                     </div>
                     <div class="todo-meta">
-                        <span class="priority-badge priority-${todo.priority}">
+                        ${this.settings.showDueDates ? this.getDueDateHtml(todo.dueDate) : ''}
+                        ${todo.repeat !== 'none' ? `<span class="repeat-indicator" title="반복: ${this.getRepeatText(todo.repeat)}">🔄</span>` : ''}
+                        ${todo.files && todo.files.length > 0 ? `<span class="attachment-indicator" title="${todo.files.length}개 파일 첨부">📎</span>` : ''}
+                        ${todo.memo ? '<span class="memo-indicator" title="메모 있음">📝</span>' : ''}
+                        ${this.settings.showPriority ? `<span class="priority-badge priority-${todo.priority}">
                             ${this.getPriorityText(todo.priority)}
-                        </span>
-                        ${this.getDueDateHtml(todo.dueDate)}
-                        <span class="todo-date">${this.formatDate(todo.createdAt)}${todo.updatedAt ? ' (수정됨)' : ''}</span>
+                        </span>` : ''}
                     </div>
                 </div>
             </li>
@@ -892,6 +967,52 @@ class TodoManager {
         } catch (error) {
             console.error('할 일 목록을 저장하는 중 오류 발생:', error);
             this.showNotification('데이터 저장 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
+    // 로컬 스토리지에서 목록 불러오기
+    loadLists() {
+        try {
+            const saved = localStorage.getItem('lists');
+            const lists = saved ? JSON.parse(saved) : [];
+            
+            // 기본 목록이 없으면 생성
+            if (lists.length === 0) {
+                const defaultList = {
+                    id: 1,
+                    name: '개인',
+                    icon: '📋',
+                    color: '#0078d4',
+                    createdAt: new Date().toISOString()
+                };
+                lists.push(defaultList);
+                this.saveLists(lists);
+            }
+            
+            return lists;
+        } catch (error) {
+            console.error('목록을 불러오는 중 오류 발생:', error);
+            return [{
+                id: 1,
+                name: '개인',
+                icon: '📋',
+                color: '#0078d4',
+                createdAt: new Date().toISOString()
+            }];
+        }
+    }
+
+    // 로컬 스토리지에 목록 저장
+    saveLists(lists = null) {
+        try {
+            const listsToSave = lists || this.lists;
+            localStorage.setItem('lists', JSON.stringify(listsToSave));
+            if (!lists) {
+                this.renderLists();
+            }
+        } catch (error) {
+            console.error('목록을 저장하는 중 오류 발생:', error);
+            this.showNotification('목록 저장 중 오류가 발생했습니다.', 'error');
         }
     }
     
@@ -1102,6 +1223,846 @@ class TodoManager {
     hideDateModal() {
         this.dateModal.classList.remove('show');
     }
+
+    // 목록 렌더링
+    renderLists() {
+        const sidebarMenu = document.querySelector('.sidebar-menu');
+        const existingListItems = sidebarMenu.querySelectorAll('.list-item');
+        existingListItems.forEach(item => item.remove());
+
+
+        // 구분선 추가
+        let separator = sidebarMenu.querySelector('.lists-separator');
+        if (!separator) {
+            const separatorItem = document.createElement('li');
+            separatorItem.className = 'sidebar-separator lists-separator';
+            separatorItem.innerHTML = '<hr style="border: 1px solid #3c3c3c; margin: 8px 16px;">';
+            sidebarMenu.appendChild(separatorItem);
+        }
+
+        // 각 목록 항목 추가
+        this.lists.forEach(list => {
+            const listItem = document.createElement('li');
+            listItem.className = 'sidebar-item list-item';
+            
+            const todosInList = this.todos.filter(t => t.listId === list.id);
+            const count = todosInList.filter(t => !t.completed).length;
+            
+            listItem.innerHTML = `
+                <a href="#" class="sidebar-link list-link ${this.currentList === list.id ? 'active' : ''}" data-list-id="${list.id}">
+                    <span class="sidebar-icon" style="color: ${list.color}">${list.icon}</span>
+                    <span class="sidebar-text">${this.escapeHtml(list.name)}</span>
+                    <span class="sidebar-count">${count}</span>
+                </a>
+            `;
+            
+            sidebarMenu.appendChild(listItem);
+            
+            const link = listItem.querySelector('.list-link');
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectList(list.id);
+            });
+            
+            // 우클릭 이벤트 추가
+            link.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                this.showListContextMenu(e.pageX, e.pageY, list.id);
+            });
+        });
+    }
+
+    // 목록 선택
+    selectList(listId) {
+        this.currentList = listId;
+        this.currentFilter = 'all'; // 기본 필터로 설정
+        
+        // 사이드바 링크 업데이트
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        const selectedLink = document.querySelector(`[data-list-id="${listId}"]`);
+        if (selectedLink) {
+            selectedLink.classList.add('active');
+        }
+        
+        // 기본 필터 링크도 비활성화
+        document.querySelectorAll('[data-filter]').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        // 페이지 제목 업데이트
+        const selectedList = this.lists.find(l => l.id === listId);
+        if (selectedList) {
+            const header = document.querySelector('header h1');
+            if (header) {
+                header.textContent = `${selectedList.icon} ${selectedList.name}`;
+            }
+        }
+        
+        this.render();
+        this.updateSidebarCounts();
+    }
+
+    // 목록 모달 표시
+    showListModal(editList = null) {
+        const modalHTML = `
+            <div id="listModal" class="modal show">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>${editList ? '목록 수정' : '새 목록 추가'}</h2>
+                        <span class="close-btn" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="listName">목록 이름 *</label>
+                            <input type="text" id="listName" value="${editList ? editList.name : ''}" maxlength="50" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="listIcon">아이콘</label>
+                            <div class="icon-grid">
+                                ${['📋', '📝', '💼', '🏠', '🛒', '🎯', '💡', '🔔', '⭐', '🚀', '💪', '🎨', '📚', '🎵', '🎮', '🌟'].map(icon => 
+                                    `<div class="icon-option ${editList && editList.icon === icon ? 'selected' : ''}" data-icon="${icon}">${icon}</div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="listColor">색상</label>
+                            <div class="color-grid">
+                                ${['#0078d4', '#ff6b6b', '#51cf66', '#ffd93d', '#9c88ff', '#20bf6b', '#fd79a8', '#6c757d', '#e84393', '#00b894'].map(color => 
+                                    `<div class="color-option ${editList && editList.color === color ? 'selected' : ''}" data-color="${color}" style="background-color: ${color}"></div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">취소</button>
+                        <button class="btn btn-primary" onclick="todoManager.saveList(${editList ? editList.id : 'null'})">${editList ? '수정' : '추가'}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // 아이콘 선택 이벤트
+        document.querySelectorAll('.icon-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+        
+        // 색상 선택 이벤트
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+        
+        // 기본값 설정
+        if (!editList) {
+            document.querySelector('.icon-option[data-icon="📋"]').classList.add('selected');
+            document.querySelector('.color-option[data-color="#0078d4"]').classList.add('selected');
+        }
+        
+        document.getElementById('listName').focus();
+    }
+
+    // 목록 저장
+    saveList(editId = null) {
+        const nameInput = document.getElementById('listName');
+        const selectedIcon = document.querySelector('.icon-option.selected');
+        const selectedColor = document.querySelector('.color-option.selected');
+        
+        const name = nameInput.value.trim();
+        
+        if (!name) {
+            this.showNotification('목록 이름을 입력해주세요!', 'error');
+            nameInput.focus();
+            return;
+        }
+        
+        const icon = selectedIcon ? selectedIcon.dataset.icon : '📋';
+        const color = selectedColor ? selectedColor.dataset.color : '#0078d4';
+        
+        if (editId) {
+            // 수정 모드
+            const list = this.lists.find(l => l.id === editId);
+            if (list) {
+                list.name = name;
+                list.icon = icon;
+                list.color = color;
+                list.updatedAt = new Date().toISOString();
+                this.showNotification('목록이 수정되었습니다!', 'success');
+            }
+        } else {
+            // 추가 모드
+            const newList = {
+                id: this.nextListId++,
+                name: name,
+                icon: icon,
+                color: color,
+                createdAt: new Date().toISOString()
+            };
+            
+            this.lists.push(newList);
+            this.showNotification('새 목록이 추가되었습니다!', 'success');
+        }
+        
+        this.saveLists();
+        document.getElementById('listModal').remove();
+    }
+
+    // 목록 관리 화면 표시
+    showListManagement() {
+        const modalHTML = `
+            <div id="listManagementModal" class="modal show">
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h2>📋 목록 관리</h2>
+                        <span class="close-btn" onclick="this.closest('.modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="list-management-grid">
+                            ${this.lists.map(list => {
+                                const todosInList = this.todos.filter(t => t.listId === list.id);
+                                const pendingCount = todosInList.filter(t => !t.completed).length;
+                                const completedCount = todosInList.filter(t => t.completed).length;
+                                
+                                return `
+                                    <div class="list-management-item">
+                                        <div class="list-info">
+                                            <div class="list-header">
+                                                <span class="list-icon" style="color: ${list.color}">${list.icon}</span>
+                                                <h3>${this.escapeHtml(list.name)}</h3>
+                                            </div>
+                                            <div class="list-stats">
+                                                <span class="stat">할 일: ${pendingCount}개</span>
+                                                <span class="stat">완료: ${completedCount}개</span>
+                                            </div>
+                                            <div class="list-date">
+                                                생성일: ${new Date(list.createdAt).toLocaleDateString('ko-KR')}
+                                            </div>
+                                        </div>
+                                        <div class="list-actions">
+                                            <button class="btn btn-secondary" onclick="todoManager.editList(${list.id})">수정</button>
+                                            <button class="btn btn-danger" onclick="todoManager.deleteList(${list.id})" ${list.id === 1 ? 'disabled title="기본 목록은 삭제할 수 없습니다"' : ''}>삭제</button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn btn-primary" onclick="todoManager.showListModal();">➕ 새 목록 추가</button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">닫기</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    // 목록 수정
+    editList(listId) {
+        const list = this.lists.find(l => l.id === listId);
+        if (list) {
+            document.getElementById('listManagementModal').remove();
+            this.showListModal(list);
+        }
+    }
+
+    // 목록 삭제
+    deleteList(listId) {
+        if (listId === 1) {
+            this.showNotification('기본 목록은 삭제할 수 없습니다.', 'error');
+            return;
+        }
+        
+        const list = this.lists.find(l => l.id === listId);
+        if (!list) return;
+        
+        const todosInList = this.todos.filter(t => t.listId === listId);
+        
+        let confirmMessage = `"${list.name}" 목록을 삭제하시겠습니까?`;
+        if (todosInList.length > 0) {
+            confirmMessage += `\n\n이 목록에는 ${todosInList.length}개의 할 일이 있습니다. 모든 할 일도 함께 삭제됩니다.`;
+        }
+        
+        if (confirm(confirmMessage)) {
+            // 목록의 모든 할 일 삭제
+            this.todos = this.todos.filter(t => t.listId !== listId);
+            
+            // 목록 삭제
+            this.lists = this.lists.filter(l => l.id !== listId);
+            
+            // 현재 선택된 목록이 삭제된 경우 기본 목록으로 변경
+            if (this.currentList === listId) {
+                this.currentList = 1;
+                this.selectList(1);
+            }
+            
+            this.saveLists();
+            this.saveTodos();
+            this.render();
+            this.updateSidebarCounts();
+            
+            document.getElementById('listManagementModal').remove();
+            this.showNotification('목록이 삭제되었습니다.', 'success');
+        }
+    }
+
+    // 검색 및 정렬 이벤트 바인딩
+    bindSearchSortEvents() {
+        // 사이드바 검색 입력 이벤트
+        this.sidebarSearchInput.addEventListener('input', (e) => {
+            this.searchQuery = e.target.value;
+            this.updateClearSearchButton();
+            this.render();
+        });
+        
+        // 사이드바 검색 지우기 버튼
+        this.clearSidebarSearch.addEventListener('click', () => {
+            this.sidebarSearchInput.value = '';
+            this.searchQuery = '';
+            this.updateClearSearchButton();
+            this.render();
+            this.sidebarSearchInput.focus();
+        });
+        
+        // 정렬 방식 변경
+        this.sortSelect.addEventListener('change', (e) => {
+            this.sortBy = e.target.value;
+            this.render();
+        });
+        
+        // 정렬 순서 토글
+        this.toggleSortOrder.addEventListener('click', () => {
+            this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+            this.updateSortOrderButton();
+            this.render();
+        });
+        
+        // 키보드 단축키 (Ctrl+F로 검색 포커스)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                this.sidebarSearchInput.focus();
+                this.sidebarSearchInput.select();
+            }
+        });
+    }
+    
+    // 검색 지우기 버튼 업데이트
+    updateClearSearchButton() {
+        if (this.searchQuery.trim()) {
+            this.clearSidebarSearch.style.display = 'block';
+        } else {
+            this.clearSidebarSearch.style.display = 'none';
+        }
+    }
+    
+    // 정렬 순서 버튼 업데이트
+    updateSortOrderButton() {
+        this.toggleSortOrder.textContent = this.sortOrder === 'asc' ? '⬆️' : '⬇️';
+        this.toggleSortOrder.title = this.sortOrder === 'asc' ? '오름차순' : '내림차순';
+    }
+    
+    // 정렬 적용
+    applySorting(todos) {
+        const sorted = [...todos];
+        
+        switch (this.sortBy) {
+            case 'newest':
+                sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                break;
+            case 'oldest':
+                sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                break;
+            case 'priority':
+                const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+                sorted.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
+                break;
+            case 'dueDate':
+                sorted.sort((a, b) => {
+                    if (!a.dueDate && !b.dueDate) return 0;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    return new Date(a.dueDate) - new Date(b.dueDate);
+                });
+                break;
+            case 'alphabetical':
+                sorted.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
+                break;
+            case 'completed':
+                sorted.sort((a, b) => {
+                    if (a.completed === b.completed) return 0;
+                    return a.completed ? 1 : -1;
+                });
+                break;
+        }
+        
+        // 정렬 순서 적용 (완료상태순은 제외)
+        if (this.sortOrder === 'desc' && this.sortBy !== 'completed') {
+            sorted.reverse();
+        }
+        
+        return sorted;
+    }
+    
+    // 검색 하이라이트
+    highlightSearchTerm(text) {
+        if (!this.searchQuery.trim()) return this.escapeHtml(text);
+        
+        const escapedText = this.escapeHtml(text);
+        const escapedQuery = this.escapeHtml(this.searchQuery.trim());
+        const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        
+        return escapedText.replace(regex, '<mark class="search-highlight">$1</mark>');
+    }
+    
+    // 설정 이벤트 바인딩
+    bindSettingsEvents() {
+        // 설정 버튼 클릭
+        this.settingsBtn.addEventListener('click', () => {
+            this.showSettings();
+        });
+        
+        // 테마 선택
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.theme-option')) {
+                const themeBtn = e.target.closest('.theme-option');
+                const theme = themeBtn.dataset.theme;
+                this.changeTheme(theme);
+                
+                document.querySelectorAll('.theme-option').forEach(btn => btn.classList.remove('active'));
+                themeBtn.classList.add('active');
+            }
+        });
+        
+        // 강조 색상 선택
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.accent-colors .color-option')) {
+                const colorBtn = e.target.closest('.color-option');
+                const color = colorBtn.dataset.color;
+                this.changeAccentColor(color);
+                
+                document.querySelectorAll('.accent-colors .color-option').forEach(btn => btn.classList.remove('active'));
+                colorBtn.classList.add('active');
+            }
+        });
+        
+        // 설정 체크박스 변경
+        ['showCompletedCount', 'showDueDates', 'showPriority', 'enableNotifications', 'enableSounds'].forEach(settingId => {
+            const checkbox = document.getElementById(settingId);
+            if (checkbox) {
+                checkbox.addEventListener('change', () => {
+                    this.updateSetting(settingId, checkbox.checked);
+                });
+            }
+        });
+    }
+    
+    // 설정 로드
+    loadSettings() {
+        try {
+            const saved = localStorage.getItem('settings');
+            const defaultSettings = {
+                theme: 'dark',
+                accentColor: '#0078d4',
+                showCompletedCount: true,
+                showDueDates: true,
+                showPriority: true,
+                enableNotifications: true,
+                enableSounds: true
+            };
+            return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+        } catch (error) {
+            console.error('설정을 불러오는 중 오류 발생:', error);
+            return {
+                theme: 'dark',
+                accentColor: '#0078d4',
+                showCompletedCount: true,
+                showDueDates: true,
+                showPriority: true,
+                enableNotifications: true,
+                enableSounds: true
+            };
+        }
+    }
+    
+    // 설정 저장
+    saveSettings() {
+        try {
+            localStorage.setItem('settings', JSON.stringify(this.settings));
+        } catch (error) {
+            console.error('설정을 저장하는 중 오류 발생:', error);
+        }
+    }
+    
+    // 설정 모달 표시
+    showSettings() {
+        this.settingsModal.classList.add('show');
+        
+        // 현재 설정값으로 UI 업데이트
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === this.settings.theme);
+        });
+        
+        document.querySelectorAll('.accent-colors .color-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.color === this.settings.accentColor);
+        });
+        
+        // 체크박스 상태 업데이트
+        ['showCompletedCount', 'showDueDates', 'showPriority', 'enableNotifications', 'enableSounds'].forEach(settingId => {
+            const checkbox = document.getElementById(settingId);
+            if (checkbox) {
+                checkbox.checked = this.settings[settingId];
+            }
+        });
+    }
+    
+    // 설정 적용
+    applySettings() {
+        this.changeTheme(this.settings.theme);
+        this.changeAccentColor(this.settings.accentColor);
+        
+        // 알림 권한 요청
+        if (this.settings.enableNotifications && 'Notification' in window) {
+            Notification.requestPermission();
+        }
+    }
+    
+    // 테마 변경
+    changeTheme(theme) {
+        this.settings.theme = theme;
+        document.body.className = theme === 'light' ? 'light-theme' : '';
+        this.saveSettings();
+    }
+    
+    // 강조 색상 변경
+    changeAccentColor(color) {
+        this.settings.accentColor = color;
+        document.documentElement.style.setProperty('--accent-color', color);
+        this.saveSettings();
+    }
+    
+    // 설정 업데이트
+    updateSetting(key, value) {
+        this.settings[key] = value;
+        this.saveSettings();
+        
+        if (key === 'enableNotifications' && value && 'Notification' in window) {
+            Notification.requestPermission();
+        }
+        
+        // 표시 설정 변경 시 UI 업데이트
+        if (['showCompletedCount', 'showDueDates', 'showPriority'].includes(key)) {
+            this.render();
+        }
+    }
+    
+    // 데이터 내보내기
+    exportData() {
+        try {
+            const data = {
+                todos: this.todos,
+                lists: this.lists,
+                settings: this.settings,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `todo-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            URL.revokeObjectURL(url);
+            this.showNotification('데이터가 성공적으로 내보내졌습니다!', 'success');
+        } catch (error) {
+            console.error('데이터 내보내기 오류:', error);
+            this.showNotification('데이터 내보내기에 실패했습니다.', 'error');
+        }
+    }
+    
+    // 데이터 가져오기
+    importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                if (confirm('현재 데이터를 모두 삭제하고 가져온 데이터로 교체하시겠습니까?')) {
+                    if (data.todos) this.todos = data.todos;
+                    if (data.lists) this.lists = data.lists;
+                    if (data.settings) {
+                        this.settings = { ...this.settings, ...data.settings };
+                        this.applySettings();
+                    }
+                    
+                    this.saveTodos();
+                    this.saveLists();
+                    this.saveSettings();
+                    
+                    this.renderLists();
+                    this.render();
+                    this.updateSidebarCounts();
+                    
+                    this.showNotification('데이터가 성공적으로 가져와졌습니다!', 'success');
+                    this.settingsModal.classList.remove('show');
+                }
+            } catch (error) {
+                console.error('데이터 가져오기 오류:', error);
+                this.showNotification('잘못된 파일 형식입니다.', 'error');
+            }
+        };
+        
+        reader.readAsText(file);
+        event.target.value = ''; // 파일 입력 초기화
+    }
+    
+    // 모든 데이터 초기화
+    resetAllData() {
+        if (confirm('정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            if (confirm('마지막 확인: 할 일, 목록, 설정이 모두 삭제됩니다. 계속하시겠습니까?')) {
+                localStorage.removeItem('todos');
+                localStorage.removeItem('lists');
+                localStorage.removeItem('settings');
+                
+                this.showNotification('모든 데이터가 삭제되었습니다. 페이지를 새로고침합니다.', 'success');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
+        }
+    }
+    
+    // 알림 표시 (설정 반영)
+    showNotification(message, type = 'info') {
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 1002;
+            animation: slideInRight 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+        `;
+
+        const colors = {
+            'success': '#51cf66',
+            'error': '#ff6b6b',
+            'info': this.settings.accentColor || '#667eea'
+        };
+        notification.style.background = colors[type] || colors.info;
+
+        document.body.appendChild(notification);
+        
+        // 효과음 재생
+        if (this.settings.enableSounds) {
+            this.playNotificationSound(type);
+        }
+        
+        // 브라우저 알림
+        if (this.settings.enableNotifications && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('할일목록', {
+                body: message,
+                icon: '/favicon.ico'
+            });
+        }
+
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 3000);
+    }
+    
+    // 알림 효과음 재생
+    playNotificationSound(type) {
+        try {
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+            
+            // 타입별 다른 주파수
+            const frequencies = {
+                'success': [523, 659, 784], // C, E, G
+                'error': [400, 300, 200],   // 하향 음
+                'info': [440, 554, 659]     // A, C#, E
+            };
+            
+            const freqs = frequencies[type] || frequencies.info;
+            
+            freqs.forEach((freq, index) => {
+                setTimeout(() => {
+                    oscillator.frequency.setValueAtTime(freq, context.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.1);
+                }, index * 100);
+            });
+            
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.3);
+        } catch (error) {
+            // 효과음 재생 실패는 무시
+        }
+    }
+    
+    // 목록 옵션 채우기
+    populateListOptions() {
+        this.sideList.innerHTML = '';
+        this.lists.forEach(list => {
+            const option = document.createElement('option');
+            option.value = list.id;
+            option.textContent = `${list.icon} ${list.name}`;
+            this.sideList.appendChild(option);
+        });
+    }
+    
+    // 목록 이벤트 바인딩
+    bindListEvents() {
+        // 새 목록 버튼
+        if (this.addListBtn) {
+            this.addListBtn.addEventListener('click', () => {
+                this.showListModal();
+            });
+        }
+        
+        // 목록 컨텍스트 메뉴 이벤트
+        if (this.listContextMenu) {
+            this.listContextMenu.addEventListener('click', (e) => {
+                const contextItem = e.target.closest('.context-item');
+                if (!contextItem) return;
+                
+                const action = contextItem.dataset.action;
+                this.handleListContextMenuAction(action);
+                this.hideListContextMenu();
+            });
+            
+            // 전역 클릭 이벤트 (목록 컨텍스트 메뉴 닫기)
+            document.addEventListener('click', (e) => {
+                if (!this.listContextMenu.contains(e.target)) {
+                    this.hideListContextMenu();
+                }
+            });
+        }
+    }
+    
+    // 목록 컨텍스트 메뉴 표시
+    showListContextMenu(x, y, listId) {
+        if (!this.listContextMenu) return;
+        
+        this.currentContextMenuListId = listId;
+        
+        // 메뉴 위치 설정
+        this.listContextMenu.style.left = x + 'px';
+        this.listContextMenu.style.top = y + 'px';
+        this.listContextMenu.classList.add('show');
+        
+        // 화면 밖으로 나가지 않도록 조정
+        const rect = this.listContextMenu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            this.listContextMenu.style.left = (x - rect.width) + 'px';
+        }
+        if (rect.bottom > window.innerHeight) {
+            this.listContextMenu.style.top = (y - rect.height) + 'px';
+        }
+        
+        // 기본 목록인 경우 삭제 메뉴 비활성화
+        const deleteItem = this.listContextMenu.querySelector('[data-action="deleteList"]');
+        if (deleteItem) {
+            if (listId === 1) {
+                deleteItem.style.opacity = '0.5';
+                deleteItem.style.pointerEvents = 'none';
+                deleteItem.title = '기본 목록은 삭제할 수 없습니다';
+            } else {
+                deleteItem.style.opacity = '1';
+                deleteItem.style.pointerEvents = 'auto';
+                deleteItem.title = '';
+            }
+        }
+    }
+    
+    // 목록 컨텍스트 메뉴 숨기기
+    hideListContextMenu() {
+        if (this.listContextMenu) {
+            this.listContextMenu.classList.remove('show');
+        }
+        this.currentContextMenuListId = null;
+    }
+    
+    // 목록 컨텍스트 메뉴 액션 처리
+    handleListContextMenuAction(action) {
+        if (!this.currentContextMenuListId) return;
+        
+        const listId = this.currentContextMenuListId;
+        
+        switch (action) {
+            case 'editList':
+                this.editList(listId);
+                break;
+            case 'duplicateList':
+                this.duplicateList(listId);
+                break;
+            case 'deleteList':
+                if (listId !== 1) {
+                    this.deleteList(listId);
+                }
+                break;
+        }
+    }
+    
+    // 목록 복제
+    duplicateList(listId) {
+        const originalList = this.lists.find(l => l.id === listId);
+        if (!originalList) return;
+        
+        const newList = {
+            id: this.nextListId++,
+            name: `${originalList.name} 사본`,
+            icon: originalList.icon,
+            color: originalList.color,
+            createdAt: new Date().toISOString()
+        };
+        
+        this.lists.push(newList);
+        this.saveLists();
+        this.showNotification('목록이 복제되었습니다!', 'success');
+    }
 }
 
 // CSS 애니메이션 추가
@@ -1139,6 +2100,11 @@ document.head.appendChild(style);
 let todoManager;
 document.addEventListener('DOMContentLoaded', () => {
     todoManager = new TodoManager();
+    
+    // 기본 목록 선택
+    if (todoManager.lists.length > 0 && !todoManager.currentList) {
+        todoManager.selectList(todoManager.lists[0].id);
+    }
 });
 
 // 키보드 단축키
