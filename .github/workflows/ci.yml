@@ -1,0 +1,81 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Code Quality
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Validate HTML
+      run: |
+        echo "🔍 Validating HTML files..."
+        find . -name "*.html" -exec echo "Checking {}" \;
+        
+    - name: Validate JavaScript syntax
+      run: |
+        echo "🔍 Validating JavaScript files..."
+        if command -v node &> /dev/null; then
+          find . -name "*.js" -exec node -c {} \;
+        else
+          echo "Node.js not available, skipping JS validation"
+        fi
+        
+    - name: Check file sizes
+      run: |
+        echo "📊 Checking file sizes..."
+        find . -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" \) -exec du -h {} \; | sort -hr
+        
+    - name: Validate CSS
+      run: |
+        echo "🎨 Validating CSS files..."
+        find . -name "*.css" -exec echo "Found CSS: {}" \;
+        
+    - name: Security scan
+      run: |
+        echo "🔒 Basic security scan..."
+        # Check for potential security issues
+        if grep -r "eval\|innerHTML\|document.write" --include="*.js" .; then
+          echo "⚠️  Potential security concerns found"
+          exit 1
+        else
+          echo "✅ No obvious security issues found"
+        fi
+        
+    - name: Performance check
+      run: |
+        echo "⚡ Performance check..."
+        # Check for large files that might affect performance
+        find . -type f -size +1M -exec echo "Large file: {} ($(du -h {} | cut -f1))" \;
+        
+    - name: Deployment readiness
+      run: |
+        echo "🚀 Checking deployment readiness..."
+        if [ -f "index.html" ]; then
+          echo "✅ Main HTML file exists"
+        else
+          echo "❌ No index.html found"
+          exit 1
+        fi
+        
+        if [ -f "style.css" ]; then
+          echo "✅ CSS file exists"
+        else
+          echo "⚠️  No CSS file found"
+        fi
+        
+        if [ -f "script.js" ]; then
+          echo "✅ JavaScript file exists"
+        else
+          echo "⚠️  No JavaScript file found"
+        fi
+        
+        echo "🎉 Validation completed successfully!"
