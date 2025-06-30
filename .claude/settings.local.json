@@ -16,7 +16,9 @@
       "Bash(python:*)",
       "Bash(ls:*)",
       "Bash(node:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel:*)"
     ],
     "deny": []
   }
