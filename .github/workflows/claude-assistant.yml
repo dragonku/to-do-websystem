@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -22,31 +23,68 @@ jobs:
         with:
           script: |
             const issueNumber = context.issue.number;
+            const issueTitle = context.payload.issue.title.toLowerCase();
+            const issueBody = context.payload.issue.body || '';
+            
+            // 이슈 제목으로 라벨 자동 할당
+            let labels = [];
+            if (issueTitle.includes('bug') || issueTitle.includes('error') || issueTitle.includes('issue')) {
+              labels.push('bug');
+            } else if (issueTitle.includes('feature') || issueTitle.includes('request') || issueTitle.includes('enhancement')) {
+              labels.push('enhancement');
+            } else if (issueTitle.includes('question') || issueTitle.includes('help') || issueTitle.includes('how')) {
+              labels.push('question');
+            }
+            
+            // 우선순위 라벨 추가
+            if (issueTitle.includes('urgent') || issueTitle.includes('critical')) {
+              labels.push('priority: high');
+            }
+            
+            // 라벨 할당
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: labels
+              });
+            }
+            
             const response = `## 👋 Welcome to the TO-DO List Web Application!
             
             Thank you for opening this issue! This is a web-based todo management system built with HTML, CSS, and JavaScript.
             
-            ### Features Include:
-            - Task management with priorities and due dates
-            - File attachments and memos
-            - Recurring task support
-            - Microsoft TO-DO style interface
-            - Dark theme design
+            ### 🎯 Current Features:
+            - ✅ Task management with priorities and due dates
+            - 📎 File attachments and memos  
+            - 🔄 Recurring task support
+            - 📋 Custom list management
+            - 🎨 Theme customization (Dark/Light mode)
+            - 🔍 Search and sorting functionality
+            - 💾 Data export/import
+            - ⚙️ Settings panel
             
-            ### Please provide:
-            - 🐛 **For Bug Reports**: Steps to reproduce, expected vs actual behavior
-            - ✨ **For Feature Requests**: Detailed description and use case
-            - ❓ **For Questions**: Specific area you need help with
+            ### 📝 Issue Guidelines:
+            ${labels.includes('bug') ? '🐛 **Bug Report Detected** - Please include:' : ''}
+            ${labels.includes('bug') ? '- Steps to reproduce\n- Expected vs actual behavior\n- Browser/OS information\n- Screenshots if applicable' : ''}
             
-            ### Quick Links:
-            - [Open the App](https://dragonku.github.io/to-do-websystem/) (if deployed)
-            - [Source Code](/tree/main)
-            - [Recent Changes](/pulls?q=is%3Apr+is%3Aclosed)
+            ${labels.includes('enhancement') ? '✨ **Feature Request Detected** - Please include:' : ''}
+            ${labels.includes('enhancement') ? '- Detailed description\n- Use case/motivation\n- Mockups or examples if available' : ''}
             
-            A maintainer will review your issue soon!
+            ${labels.includes('question') ? '❓ **Question Detected** - Please include:' : ''}
+            ${labels.includes('question') ? '- Specific area you need help with\n- What you\'ve already tried\n- Expected outcome' : ''}
+            
+            ### 🔗 Quick Links:
+            - [📱 Live Demo](https://dragonku.github.io/to-do-websystem/) (if deployed)
+            - [📂 Source Code](https://github.com/dragonku/to-do-websystem)
+            - [📋 Recent Changes](https://github.com/dragonku/to-do-websystem/pulls?q=is%3Apr+is%3Aclosed)
+            - [🐛 Known Issues](https://github.com/dragonku/to-do-websystem/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+            
+            A maintainer will review your issue soon! 🚀
             
             ---
-            *Automated response*`;
+            *Automated response by GitHub Actions*`;
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -54,3 +92,47 @@ jobs:
               issue_number: issueNumber,
               body: response
             });
+
+      - name: Auto-respond to issue comments
+        if: github.event_name == 'issue_comment' && github.event.action == 'created' && !github.event.issue.pull_request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = context.payload.comment.body.toLowerCase();
+            const commenter = context.payload.comment.user.login;
+            
+            // 봇이나 작성자 본인의 댓글은 무시
+            if (commenter === 'github-actions[bot]' || commenter === context.repo.owner) {
+              return;
+            }
+            
+            // 특정 키워드에 대한 자동 응답
+            if (comment.includes('how to') || comment.includes('어떻게')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `## 📚 Getting Started Guide
+                
+                Here are some helpful resources:
+                
+                1. **Basic Usage**: Open \`index.html\` in your browser
+                2. **Features**: Check out the sidebar for different views (Today, Important, Scheduled)
+                3. **Settings**: Click the ⚙️ settings button for customization
+                4. **Keyboard Shortcuts**: 
+                   - \`Ctrl + Enter\`: Add new task
+                   - \`Ctrl + F\`: Search tasks
+                   - \`Escape\`: Close panels
+                
+                Need more specific help? Please describe what you're trying to do! 🤔`
+              });
+            }
+            
+            if (comment.includes('thanks') || comment.includes('thank you') || comment.includes('감사')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `You're welcome! 😊 If you found this helpful, consider giving the repository a ⭐ star!`
+              });
+            }

@@ -180,7 +180,8 @@ class TodoManager {
 
     // 빠른 할 일 추가
     addQuickTodo() {
-        const text = this.todoInput.value.trim();
+        const rawText = this.todoInput.value;
+        const text = this.sanitizeInput(rawText);
 
         if (!text) {
             this.showNotification('할 일을 입력해주세요!', 'error');
@@ -260,7 +261,10 @@ class TodoManager {
         this.sideFiles.value = '';
         this.sideMemo.value = '';
         this.sideCharCount.textContent = '0';
-        this.fileList.innerHTML = '';
+        // Clear file list safely
+        while (this.fileList.firstChild) {
+            this.fileList.removeChild(this.fileList.firstChild);
+        }
         this.attachedFiles = [];
     }
 
@@ -318,25 +322,49 @@ class TodoManager {
 
     // 파일 목록 렌더링
     renderFileList() {
-        this.fileList.innerHTML = this.attachedFiles.map((file, index) => `
-            <div class="file-item" data-file-id="${file.id}">
-                <div class="file-info">
-                    <span class="file-icon">${this.getFileIcon(file.type)}</span>
-                    <div>
-                        <div class="file-name">${this.escapeHtml(file.name)}</div>
-                        <div class="file-size">${this.formatFileSize(file.size)}</div>
-                    </div>
-                </div>
-                <button class="remove-file" data-file-id="${file.id}">삭제</button>
-            </div>
-        `).join('');
+        // Clear existing content safely
+        while (this.fileList.firstChild) {
+            this.fileList.removeChild(this.fileList.firstChild);
+        }
         
-        // 삭제 버튼에 이벤트 리스너 추가
-        this.fileList.querySelectorAll('.remove-file').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        this.attachedFiles.forEach((file) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.setAttribute('data-file-id', file.id);
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'file-info';
+            
+            const fileIcon = document.createElement('span');
+            fileIcon.className = 'file-icon';
+            fileIcon.textContent = this.getFileIcon(file.type);
+            
+            const fileDetails = document.createElement('div');
+            
+            const fileName = document.createElement('div');
+            fileName.className = 'file-name';
+            fileName.textContent = file.name;
+            
+            const fileSize = document.createElement('div');
+            fileSize.className = 'file-size';
+            fileSize.textContent = this.formatFileSize(file.size);
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-file';
+            removeBtn.setAttribute('data-file-id', file.id);
+            removeBtn.textContent = '삭제';
+            removeBtn.addEventListener('click', (e) => {
                 const fileId = e.target.getAttribute('data-file-id');
                 this.removeFile(fileId);
             });
+            
+            fileDetails.appendChild(fileName);
+            fileDetails.appendChild(fileSize);
+            fileInfo.appendChild(fileIcon);
+            fileInfo.appendChild(fileDetails);
+            fileItem.appendChild(fileInfo);
+            fileItem.appendChild(removeBtn);
+            this.fileList.appendChild(fileItem);
         });
     }
 
@@ -372,13 +400,13 @@ class TodoManager {
 
     // 사이드 패널 변경사항 저장
     saveSideChanges() {
-        const newText = this.sideTitle.value.trim();
+        const newText = this.sanitizeInput(this.sideTitle.value);
         const newListId = parseInt(this.sideList.value);
         const newPriority = this.sidePriority.value;
         const newDueDate = this.sideDueDate.value || null;
         const newRepeat = this.sideRepeat.value;
         const newImportant = this.sideImportant.checked;
-        const newMemo = this.sideMemo.value.trim();
+        const newMemo = this.sanitizeInput(this.sideMemo.value);
 
         if (!newText) {
             this.showNotification('할 일 내용을 입력해주세요!', 'error');
@@ -727,10 +755,12 @@ class TodoManager {
             filtered = filtered.filter(t => t.priority === this.currentPriorityFilter);
         }
 
-        // 검색 필터
+        // 검색 필터 - 검색 시에는 모든 필터 무시하고 전체 할일에서 검색
         if (this.searchQuery.trim()) {
             const query = this.searchQuery.toLowerCase().trim();
-            filtered = filtered.filter(todo => {
+            
+            // 검색 시에는 모든 할일에서 검색 (모든 필터 무시)
+            filtered = this.todos.filter(todo => {
                 return todo.text.toLowerCase().includes(query) ||
                        (todo.memo && todo.memo.toLowerCase().includes(query)) ||
                        this.getPriorityText(todo.priority).toLowerCase().includes(query) ||
@@ -756,50 +786,170 @@ class TodoManager {
         
         // 진행중인 할일 렌더링
         if (pendingTodos.length === 0) {
-            this.todoList.innerHTML = '';
+            // Clear todo list safely
+            while (this.todoList.firstChild) {
+                this.todoList.removeChild(this.todoList.firstChild);
+            }
             this.emptyState.classList.remove('hidden');
         } else {
             this.emptyState.classList.add('hidden');
-            this.todoList.innerHTML = pendingTodos.map(todo => this.renderTodoItem(todo)).join('');
+            // Clear and rebuild todo list safely
+            while (this.todoList.firstChild) {
+                this.todoList.removeChild(this.todoList.firstChild);
+            }
+            pendingTodos.forEach(todo => {
+                const todoElement = this.createTodoElement(todo);
+                this.todoList.appendChild(todoElement);
+            });
         }
         
         // 완료된 할일 섹션 처리
         if (allCompletedTodos.length > 0) {
             this.completedSection.style.display = 'block';
             this.completedSectionCount.textContent = allCompletedTodos.length;
-            this.completedTodoList.innerHTML = allCompletedTodos.map(todo => this.renderTodoItem(todo)).join('');
+            // Clear and rebuild completed todo list safely
+            while (this.completedTodoList.firstChild) {
+                this.completedTodoList.removeChild(this.completedTodoList.firstChild);
+            }
+            allCompletedTodos.forEach(todo => {
+                const todoElement = this.createTodoElement(todo);
+                this.completedTodoList.appendChild(todoElement);
+            });
         } else {
             this.completedSection.style.display = 'none';
         }
     }
 
-    // 할일 아이템 렌더링 헬퍼 함수
-    renderTodoItem(todo) {
-        return `
-            <li class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
-                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} 
-                       onchange="todoManager.toggleTodo(${todo.id})" onclick="event.stopPropagation()">
-                <div class="todo-content clickable" onclick="todoManager.openSidePanel('edit', ${todo.id})">
-                    <div class="todo-main-row">
-                        <span class="todo-text">${this.highlightSearchTerm(todo.text)}</span>
-                        <span class="important-indicator ${todo.isImportant ? 'active' : ''}" 
-                              title="${todo.isImportant ? '중요 표시 해제' : '중요로 표시'}"
-                              onclick="event.stopPropagation(); todoManager.toggleImportant(${todo.id})">
-                            ${todo.isImportant ? '★' : '☆'}
-                        </span>
-                    </div>
-                    <div class="todo-meta">
-                        ${this.settings.showDueDates ? this.getDueDateHtml(todo.dueDate) : ''}
-                        ${todo.repeat !== 'none' ? `<span class="repeat-indicator" title="반복: ${this.getRepeatText(todo.repeat)}">🔄</span>` : ''}
-                        ${todo.files && todo.files.length > 0 ? `<span class="attachment-indicator" title="${todo.files.length}개 파일 첨부">📎</span>` : ''}
-                        ${todo.memo ? '<span class="memo-indicator" title="메모 있음">📝</span>' : ''}
-                        ${this.settings.showPriority ? `<span class="priority-badge priority-${todo.priority}">
-                            ${this.getPriorityText(todo.priority)}
-                        </span>` : ''}
-                    </div>
-                </div>
-            </li>
-        `;
+    // 할일 아이템 생성 함수 (안전한 DOM 조작)
+    createTodoElement(todo) {
+        const li = document.createElement('li');
+        li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+        li.setAttribute('data-id', todo.id);
+        
+        // Checkbox
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'todo-checkbox';
+        checkbox.checked = todo.completed;
+        checkbox.addEventListener('change', () => this.toggleTodo(todo.id));
+        checkbox.addEventListener('click', (e) => e.stopPropagation());
+        
+        // Todo content
+        const todoContent = document.createElement('div');
+        todoContent.className = 'todo-content clickable';
+        todoContent.addEventListener('click', () => this.openSidePanel('edit', todo.id));
+        
+        // Main row
+        const mainRow = document.createElement('div');
+        mainRow.className = 'todo-main-row';
+        
+        const todoText = document.createElement('span');
+        todoText.className = 'todo-text';
+        if (this.searchQuery.trim()) {
+            this.setHighlightedText(todoText, todo.text, this.searchQuery);
+        } else {
+            todoText.textContent = todo.text;
+        }
+        
+        const importantIndicator = document.createElement('span');
+        importantIndicator.className = `important-indicator ${todo.isImportant ? 'active' : ''}`;
+        importantIndicator.title = todo.isImportant ? '중요 표시 해제' : '중요로 표시';
+        importantIndicator.textContent = todo.isImportant ? '★' : '☆';
+        importantIndicator.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleImportant(todo.id);
+        });
+        
+        mainRow.appendChild(todoText);
+        mainRow.appendChild(importantIndicator);
+        
+        // Meta row
+        const metaRow = document.createElement('div');
+        metaRow.className = 'todo-meta';
+        
+        // Due date
+        if (this.settings.showDueDates && todo.dueDate) {
+            const dueDateElement = this.createDueDateElement(todo.dueDate);
+            metaRow.appendChild(dueDateElement);
+        }
+        
+        // Repeat indicator
+        if (todo.repeat !== 'none') {
+            const repeatSpan = document.createElement('span');
+            repeatSpan.className = 'repeat-indicator';
+            repeatSpan.title = `반복: ${this.getRepeatText(todo.repeat)}`;
+            repeatSpan.textContent = '🔄';
+            metaRow.appendChild(repeatSpan);
+        }
+        
+        // Attachment indicator
+        if (todo.files && todo.files.length > 0) {
+            const attachmentSpan = document.createElement('span');
+            attachmentSpan.className = 'attachment-indicator';
+            attachmentSpan.title = `${todo.files.length}개 파일 첨부`;
+            attachmentSpan.textContent = '📎';
+            metaRow.appendChild(attachmentSpan);
+        }
+        
+        // Memo indicator
+        if (todo.memo) {
+            const memoSpan = document.createElement('span');
+            memoSpan.className = 'memo-indicator';
+            memoSpan.title = '메모 있음';
+            memoSpan.textContent = '📝';
+            metaRow.appendChild(memoSpan);
+        }
+        
+        // Priority badge
+        if (this.settings.showPriority) {
+            const prioritySpan = document.createElement('span');
+            prioritySpan.className = `priority-badge priority-${todo.priority}`;
+            prioritySpan.textContent = this.getPriorityText(todo.priority);
+            metaRow.appendChild(prioritySpan);
+        }
+        
+        todoContent.appendChild(mainRow);
+        todoContent.appendChild(metaRow);
+        
+        li.appendChild(checkbox);
+        li.appendChild(todoContent);
+        
+        return li;
+    }
+
+    // 마감일 요소 생성 함수
+    createDueDateElement(dueDate) {
+        if (!dueDate) return null;
+        
+        const due = new Date(dueDate);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+        
+        const diffTime = dueDay - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let className = 'normal';
+        let text = due.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+        
+        if (diffDays < 0) {
+            className = 'overdue';
+            text = `기한 만료 (${Math.abs(diffDays)}일 전)`;
+        } else if (diffDays === 0) {
+            className = 'due-soon';
+            text = '오늘 마감';
+        } else if (diffDays === 1) {
+            className = 'due-soon';
+            text = '내일 마감';
+        } else if (diffDays <= 3) {
+            className = 'due-soon';
+            text = `${diffDays}일 후`;
+        }
+        
+        const span = document.createElement('span');
+        span.className = `due-date ${className}`;
+        span.textContent = `📅 ${text}`;
+        return span;
     }
 
     // 완료된 섹션 토글
@@ -895,9 +1045,39 @@ class TodoManager {
 
     // HTML 이스케이프
     escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        if (typeof text !== 'string') return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // 강화된 입력 검증 및 정리
+    sanitizeInput(input) {
+        if (typeof input !== 'string') return '';
+        
+        // Remove potential script tags and dangerous content
+        return input
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .replace(/<[^>]*>/g, '')
+            .replace(/javascript:/gi, '')
+            .replace(/on\w+\s*=/gi, '')
+            .trim()
+            .slice(0, 1000); // Limit length to prevent DoS
+    }
+
+    // 안전한 검색 쿼리 검증
+    validateSearchQuery(query) {
+        if (typeof query !== 'string') return '';
+        
+        // Remove dangerous patterns and limit length
+        return query
+            .replace(/[<>]/g, '')
+            .replace(/javascript:/gi, '')
+            .trim()
+            .slice(0, 100);
     }
 
     // 알림 표시
@@ -1109,28 +1289,61 @@ class TodoManager {
         // 중요로 표시/해제 텍스트 변경
         const importantItem = this.contextMenu.querySelector('[data-action="markImportant"]');
         if (importantItem) {
-            importantItem.innerHTML = `
-                <span class="context-icon">⭐</span>
-                ${todo.isImportant ? '중요 표시 해제' : '중요로 표시'}
-            `;
+            // Clear existing content
+            while (importantItem.firstChild) {
+                importantItem.removeChild(importantItem.firstChild);
+            }
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'context-icon';
+            iconSpan.textContent = '⭐';
+            
+            const textNode = document.createTextNode(
+                todo.isImportant ? '중요 표시 해제' : '중요로 표시'
+            );
+            
+            importantItem.appendChild(iconSpan);
+            importantItem.appendChild(textNode);
         }
         
         // 완료됨으로 표시/해제 텍스트 변경
         const completedItem = this.contextMenu.querySelector('[data-action="markCompleted"]');
         if (completedItem) {
-            completedItem.innerHTML = `
-                <span class="context-icon">✅</span>
-                ${todo.completed ? '미완료로 표시' : '완료됨으로 표시'}
-            `;
+            // Clear existing content
+            while (completedItem.firstChild) {
+                completedItem.removeChild(completedItem.firstChild);
+            }
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'context-icon';
+            iconSpan.textContent = '✅';
+            
+            const textNode = document.createTextNode(
+                todo.completed ? '미완료로 표시' : '완료됨으로 표시'
+            );
+            
+            completedItem.appendChild(iconSpan);
+            completedItem.appendChild(textNode);
         }
         
         // 나의 하루 추가/제거 텍스트 변경
         const myDayItem = this.contextMenu.querySelector('[data-action="addToMyDay"]');
         if (myDayItem) {
-            myDayItem.innerHTML = `
-                <span class="context-icon">☀️</span>
-                ${todo.isMyDay ? '나의 하루에서 제거' : '나의 하루 추가'}
-            `;
+            // Clear existing content
+            while (myDayItem.firstChild) {
+                myDayItem.removeChild(myDayItem.firstChild);
+            }
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'context-icon';
+            iconSpan.textContent = '☀️';
+            
+            const textNode = document.createTextNode(
+                todo.isMyDay ? '나의 하루에서 제거' : '나의 하루 추가'
+            );
+            
+            myDayItem.appendChild(iconSpan);
+            myDayItem.appendChild(textNode);
         }
     }
     
@@ -1236,7 +1449,12 @@ class TodoManager {
         if (!separator) {
             const separatorItem = document.createElement('li');
             separatorItem.className = 'sidebar-separator lists-separator';
-            separatorItem.innerHTML = '<hr style="border: 1px solid #3c3c3c; margin: 8px 16px;">';
+            
+            const hr = document.createElement('hr');
+            hr.style.border = '1px solid #3c3c3c';
+            hr.style.margin = '8px 16px';
+            separatorItem.appendChild(hr);
+            
             sidebarMenu.appendChild(separatorItem);
         }
 
@@ -1248,17 +1466,32 @@ class TodoManager {
             const todosInList = this.todos.filter(t => t.listId === list.id);
             const count = todosInList.filter(t => !t.completed).length;
             
-            listItem.innerHTML = `
-                <a href="#" class="sidebar-link list-link ${this.currentList === list.id ? 'active' : ''}" data-list-id="${list.id}">
-                    <span class="sidebar-icon" style="color: ${list.color}">${list.icon}</span>
-                    <span class="sidebar-text">${this.escapeHtml(list.name)}</span>
-                    <span class="sidebar-count">${count}</span>
-                </a>
-            `;
+            const link = document.createElement('a');
+            link.href = '#';
+            link.className = `sidebar-link list-link ${this.currentList === list.id ? 'active' : ''}`;
+            link.setAttribute('data-list-id', list.id);
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'sidebar-icon';
+            iconSpan.style.color = list.color;
+            iconSpan.textContent = list.icon;
+            
+            const textSpan = document.createElement('span');
+            textSpan.className = 'sidebar-text';
+            textSpan.textContent = list.name;
+            
+            const countSpan = document.createElement('span');
+            countSpan.className = 'sidebar-count';
+            countSpan.textContent = count;
+            
+            link.appendChild(iconSpan);
+            link.appendChild(textSpan);
+            link.appendChild(countSpan);
+            listItem.appendChild(link);
             
             sidebarMenu.appendChild(listItem);
             
-            const link = listItem.querySelector('.list-link');
+            // Add event listeners to the already created link
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.selectList(list.id);
@@ -1377,7 +1610,7 @@ class TodoManager {
         const selectedIcon = document.querySelector('.icon-option.selected');
         const selectedColor = document.querySelector('.color-option.selected');
         
-        const name = nameInput.value.trim();
+        const name = this.sanitizeInput(nameInput.value);
         
         if (!name) {
             this.showNotification('목록 이름을 입력해주세요!', 'error');
@@ -1522,7 +1755,7 @@ class TodoManager {
     bindSearchSortEvents() {
         // 사이드바 검색 입력 이벤트
         this.sidebarSearchInput.addEventListener('input', (e) => {
-            this.searchQuery = e.target.value;
+            this.searchQuery = this.validateSearchQuery(e.target.value);
             this.updateClearSearchButton();
             this.render();
         });
@@ -1616,7 +1849,43 @@ class TodoManager {
         return sorted;
     }
     
-    // 검색 하이라이트
+    // 안전한 검색 하이라이트 (DOM 조작 방식)
+    setHighlightedText(element, text, searchQuery) {
+        if (!searchQuery.trim()) {
+            element.textContent = text;
+            return;
+        }
+        
+        const query = this.validateSearchQuery(searchQuery);
+        if (!query) {
+            element.textContent = text;
+            return;
+        }
+        
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const parts = text.split(regex);
+        
+        // Clear element
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+        
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i]) {
+                if (regex.test(parts[i])) {
+                    const mark = document.createElement('mark');
+                    mark.className = 'search-highlight';
+                    mark.textContent = parts[i];
+                    element.appendChild(mark);
+                } else {
+                    const textNode = document.createTextNode(parts[i]);
+                    element.appendChild(textNode);
+                }
+            }
+        }
+    }
+
+    // Legacy method for compatibility (now safe)
     highlightSearchTerm(text) {
         if (!this.searchQuery.trim()) return this.escapeHtml(text);
         
@@ -1944,7 +2213,11 @@ class TodoManager {
     
     // 목록 옵션 채우기
     populateListOptions() {
-        this.sideList.innerHTML = '';
+        // Clear existing options safely
+        while (this.sideList.firstChild) {
+            this.sideList.removeChild(this.sideList.firstChild);
+        }
+        
         this.lists.forEach(list => {
             const option = document.createElement('option');
             option.value = list.id;
