@@ -1046,9 +1046,12 @@ class TodoManager {
     // HTML 이스케이프
     escapeHtml(text) {
         if (typeof text !== 'string') return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     // 강화된 입력 검증 및 정리
