@@ -15,6 +15,7 @@ class TodoManager {
         this.attachedFiles = [];
         this.completedSectionExpanded = false;
         this.currentContextMenuTodoId = null;
+        this.currentContextMenuListId = null;
         this.isManagingLists = false;
         this.settings = this.loadSettings();
         
@@ -89,6 +90,14 @@ class TodoManager {
         // 목록 관련 요소들
         this.addListBtn = document.getElementById('addListBtn');
         this.listContextMenu = document.getElementById('listContextMenu');
+        
+        // 디버깅: listContextMenu 요소 확인
+        console.log('listContextMenu element:', this.listContextMenu);
+        
+        // 모바일 요소들
+        this.sidebar = document.getElementById('sidebar');
+        this.mobileOverlay = document.getElementById('mobileOverlay');
+        this.header = document.querySelector('header');
     }
 
     // 이벤트 바인딩
@@ -138,6 +147,9 @@ class TodoManager {
         // 설정 이벤트
         this.bindSettingsEvents();
         
+        // 모바일 이벤트
+        this.bindMobileEvents();
+        
         // 컨텍스트 메뉴 이벤트
         this.bindContextMenuEvents();
         
@@ -153,6 +165,12 @@ class TodoManager {
         
         // 할일 목록에 우클릭 이벤트 바인딩
         document.addEventListener('contextmenu', (e) => {
+            // 목록 링크인 경우 개별 이벤트 핸들러에서 처리하므로 여기서는 제외
+            const listLink = e.target.closest('.list-link');
+            if (listLink) {
+                return; // 목록 링크는 개별 핸들러에서 처리
+            }
+            
             const todoItem = e.target.closest('.todo-item');
             if (todoItem) {
                 e.preventDefault();
@@ -1499,7 +1517,9 @@ class TodoManager {
             
             // 우클릭 이벤트 추가
             link.addEventListener('contextmenu', (e) => {
+                console.log('Right click on list:', list.id, list.name);
                 e.preventDefault();
+                e.stopPropagation(); // 이벤트 전파 방지
                 this.showListContextMenu(e.pageX, e.pageY, list.id);
             });
         });
@@ -1706,7 +1726,10 @@ class TodoManager {
     editList(listId) {
         const list = this.lists.find(l => l.id === listId);
         if (list) {
-            document.getElementById('listManagementModal').remove();
+            const existingModal = document.getElementById('listManagementModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
             this.showListModal(list);
         }
     }
@@ -1936,6 +1959,111 @@ class TodoManager {
                 });
             }
         });
+    }
+    
+    // 모바일 이벤트 바인딩
+    bindMobileEvents() {
+        // 헤더 햄버거 메뉴 클릭 (::before pseudo-element는 직접 이벤트를 받을 수 없으므로 헤더 영역 클릭으로 처리)
+        if (this.header) {
+            this.header.addEventListener('click', (e) => {
+                // 헤더의 왼쪽 50px 영역 클릭시 사이드바 토글
+                const rect = this.header.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                
+                if (clickX <= 50 && window.innerWidth <= 1024) {
+                    e.preventDefault();
+                    this.toggleMobileSidebar();
+                }
+            });
+        }
+        
+        // 모바일 오버레이 클릭시 사이드바 닫기
+        if (this.mobileOverlay) {
+            this.mobileOverlay.addEventListener('click', () => {
+                this.closeMobileSidebar();
+            });
+        }
+        
+        // 사이드바 링크 클릭시 모바일에서 사이드바 닫기
+        this.sidebarLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    this.closeMobileSidebar();
+                }
+            });
+        });
+        
+        // 윈도우 리사이즈시 사이드바 상태 초기화
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                this.closeMobileSidebar();
+            }
+        });
+        
+        // 터치 이벤트 개선 (스와이프로 사이드바 닫기)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        
+        if (this.sidebar) {
+            this.sidebar.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            });
+            
+            this.sidebar.addEventListener('touchmove', (e) => {
+                if (!touchStartX) return;
+                
+                const touchCurrentX = e.touches[0].clientX;
+                const touchCurrentY = e.touches[0].clientY;
+                
+                const diffX = touchStartX - touchCurrentX;
+                const diffY = Math.abs(touchStartY - touchCurrentY);
+                
+                // 수평 스와이프가 수직 스와이프보다 클 때만 처리
+                if (Math.abs(diffX) > diffY && Math.abs(diffX) > 50) {
+                    if (diffX > 0 && window.innerWidth <= 768) {
+                        // 왼쪽으로 스와이프시 사이드바 닫기
+                        this.closeMobileSidebar();
+                    }
+                }
+                
+                touchStartX = 0;
+                touchStartY = 0;
+            });
+        }
+    }
+    
+    // 모바일 사이드바 토글
+    toggleMobileSidebar() {
+        if (this.sidebar && this.sidebar.classList.contains('open')) {
+            this.closeMobileSidebar();
+        } else {
+            this.openMobileSidebar();
+        }
+    }
+    
+    // 모바일 사이드바 열기
+    openMobileSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.add('open');
+        }
+        if (this.mobileOverlay) {
+            this.mobileOverlay.classList.add('show');
+        }
+        // 스크롤 방지
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // 모바일 사이드바 닫기
+    closeMobileSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.remove('open');
+        }
+        if (this.mobileOverlay) {
+            this.mobileOverlay.classList.remove('show');
+        }
+        // 스크롤 복원
+        document.body.style.overflow = '';
     }
     
     // 설정 로드
@@ -2235,21 +2363,30 @@ class TodoManager {
             });
         }
         
-        // 목록 컨텍스트 메뉴 이벤트
+        // 목록 컨텍스트 메뉴 이벤트 - 각 메뉴 아이템에 직접 바인딩
         if (this.listContextMenu) {
-            this.listContextMenu.addEventListener('click', (e) => {
-                const contextItem = e.target.closest('.context-item');
-                if (!contextItem) return;
-                
-                const action = contextItem.dataset.action;
-                this.handleListContextMenuAction(action);
-                this.hideListContextMenu();
+            const menuItems = this.listContextMenu.querySelectorAll('.context-item');
+            menuItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    console.log('List context menu item clicked:', e.target);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const action = item.dataset.action;
+                    console.log('Context menu action:', action);
+                    this.handleListContextMenuAction(action);
+                    this.hideListContextMenu();
+                });
             });
             
             // 전역 클릭 이벤트 (목록 컨텍스트 메뉴 닫기)
             document.addEventListener('click', (e) => {
-                if (!this.listContextMenu.contains(e.target)) {
-                    this.hideListContextMenu();
+                // 컨텍스트 메뉴나 목록 링크가 아닌 곳 클릭시 메뉴 숨기기
+                if (!this.listContextMenu.contains(e.target) && 
+                    !e.target.closest('.list-link')) {
+                    setTimeout(() => {
+                        this.hideListContextMenu();
+                    }, 10); // 약간의 지연을 두어 클릭 이벤트가 제대로 처리되도록 함
                 }
             });
         }
@@ -2257,14 +2394,23 @@ class TodoManager {
     
     // 목록 컨텍스트 메뉴 표시
     showListContextMenu(x, y, listId) {
-        if (!this.listContextMenu) return;
+        console.log('showListContextMenu called with:', x, y, listId);
+        if (!this.listContextMenu) {
+            console.error('listContextMenu element not found');
+            return;
+        }
         
         this.currentContextMenuListId = listId;
+        
+        // 다른 컨텍스트 메뉴들 숨기기
+        this.hideContextMenu();
         
         // 메뉴 위치 설정
         this.listContextMenu.style.left = x + 'px';
         this.listContextMenu.style.top = y + 'px';
         this.listContextMenu.classList.add('show');
+        
+        console.log('List context menu should now be visible');
         
         // 화면 밖으로 나가지 않도록 조정
         const rect = this.listContextMenu.getBoundingClientRect();

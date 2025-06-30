@@ -1306,24 +1306,91 @@ footer {
     }
 }
 
-/* 반응형 디자인 */
-@media (max-width: 768px) {
+/* 모바일 우선 반응형 디자인 */
+@media (max-width: 1024px) {
     .sidebar {
-        width: 280px;
+        position: fixed;
+        left: -320px;
+        top: 0;
+        width: 320px;
+        height: 100vh;
+        z-index: 999;
+        transition: left 0.3s ease;
+    }
+    
+    .sidebar.open {
+        left: 0;
     }
     
     .main-content {
-        margin-left: 280px;
+        margin-left: 0;
+        width: 100%;
     }
     
     .container {
-        margin: 0;
         padding: 0;
-        border-radius: 0;
     }
     
     header {
-        padding: 24px 20px 16px;
+        padding: 16px 20px;
+        position: relative;
+    }
+    
+    header::before {
+        content: '☰';
+        position: absolute;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 24px;
+        color: #ffffff;
+        cursor: pointer;
+        z-index: 1;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background 0.2s ease;
+    }
+    
+    header::before:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    header h1 {
+        margin-left: 50px;
+        font-size: 24px;
+    }
+    
+    .mobile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+        display: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .mobile-overlay.show {
+        display: block;
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        font-size: 16px;
+    }
+    
+    .sidebar {
+        width: 100%;
+        left: -100%;
+    }
+    
+    .sidebar.open {
+        left: 0;
     }
     
     .add-todo-section {
@@ -1335,65 +1402,344 @@ footer {
     }
     
     .pending-todos-section {
-        padding: 20px;
+        padding: 16px 20px;
     }
     
-    header h1 {
-        font-size: 2em;
+    #todoInput {
+        font-size: 16px;
+        padding: 16px 20px;
+        min-width: auto;
+        width: 100%;
     }
     
     .input-group {
         flex-direction: column;
         align-items: stretch;
+        gap: 16px;
     }
     
-    .filter-section {
-        flex-direction: column;
-        align-items: stretch;
+    .sort-container {
+        flex-wrap: wrap;
+        gap: 8px;
     }
     
-    .filter-buttons {
-        justify-content: center;
+    #sortSelect {
+        min-width: 120px;
+        font-size: 16px;
+        padding: 12px 16px;
     }
     
-    .stats {
-        flex-direction: column;
-        gap: 15px;
+    .sort-order-btn {
+        padding: 12px 14px;
+        min-width: 44px;
     }
     
     .todo-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+        padding: 16px 20px;
+        min-height: auto;
+    }
+    
+    .todo-checkbox {
+        width: 24px;
+        height: 24px;
+        margin-right: 16px;
+        margin-top: 2px;
+    }
+    
+    .todo-text {
+        font-size: 16px;
+        line-height: 1.6;
+    }
+    
+    .todo-meta {
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    
+    .priority-badge {
+        padding: 4px 10px;
+        font-size: 12px;
+    }
+    
+    .todo-date {
+        font-size: 12px;
+    }
+    
+    .important-indicator {
+        font-size: 20px;
+        padding: 6px;
+        margin: 0 4px;
+    }
+    
+    .todo-indicators {
+        gap: 12px;
+        margin-top: 4px;
+    }
+    
+    .completed-header {
+        padding: 16px 20px;
+    }
+    
+    .completed-todos {
+        padding: 12px 20px 20px;
+    }
+    
+    .empty-state {
+        padding: 48px 20px;
+        font-size: 16px;
+    }
+    
+    footer {
+        padding: 20px;
+        margin-top: 20px;
+    }
+    
+    .clear-all-btn {
+        padding: 12px 20px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        font-size: 16px;
+    }
+    
+    header h1 {
+        font-size: 20px;
+        margin-left: 50px;
+    }
+    
+    .sidebar-header h2 {
+        font-size: 20px;
+    }
+    
+    .sidebar-link {
+        padding: 16px 20px;
+        min-height: 52px;
+    }
+    
+    .sidebar-text {
+        font-size: 16px;
+    }
+    
+    .sidebar-count {
+        padding: 4px 8px;
+        font-size: 12px;
+        min-width: 24px;
+    }
+    
+    .add-todo-section,
+    .sort-section,
+    .pending-todos-section {
+        padding: 16px 16px;
+    }
+    
+    header {
+        padding: 16px;
+    }
+    
+    #todoInput {
+        padding: 16px;
+        font-size: 16px;
+    }
+    
+    .todo-item {
+        padding: 16px;
     }
     
     .todo-content {
         width: 100%;
+    }
+    
+    .todo-main-row {
         flex-direction: column;
         align-items: flex-start;
+        gap: 8px;
     }
     
-    .todo-actions {
+    .todo-indicators {
         width: 100%;
         justify-content: flex-start;
-        margin-top: 10px;
+        margin-left: 0;
+        margin-top: 8px;
     }
     
-    .edit-actions {
-        width: 100%;
-        justify-content: flex-start;
+    .completed-header,
+    .completed-todos {
+        padding: 16px;
     }
     
-    .todo-edit-input {
-        width: 100%;
-        margin-bottom: 10px;
-        margin-right: 0;
+    .empty-state {
+        padding: 32px 16px;
+        font-size: 16px;
+    }
+}
+
+/* 터치 친화적 버튼 크기 */
+@media (max-width: 768px) {
+    .delete-btn,
+    .edit-btn,
+    .save-btn,
+    .cancel-btn {
+        padding: 10px 16px;
+        font-size: 14px;
+        min-height: 44px;
+        min-width: 44px;
     }
     
-    .todo-edit-priority {
-        width: 100%;
-        margin-bottom: 10px;
-        margin-right: 0;
+    .action-btn,
+    .settings-btn {
+        padding: 16px;
+        min-height: 52px;
+    }
+    
+    .sidebar-search input {
+        padding: 12px 16px 12px 40px;
+        font-size: 16px;
+    }
+    
+    .sidebar-search .search-icon {
+        left: 16px;
+        font-size: 16px;
+    }
+    
+    .sidebar-search .clear-search-btn {
+        right: 12px;
+        padding: 6px;
+        font-size: 16px;
+    }
+}
+
+/* 터치 스크린 최적화 */
+@media (hover: none) and (pointer: coarse) {
+    .todo-item {
+        padding: 18px 20px;
+        min-height: 60px;
+    }
+    
+    .todo-checkbox {
+        width: 28px;
+        height: 28px;
+        margin-right: 16px;
+    }
+    
+    .important-indicator {
+        padding: 8px;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .delete-btn,
+    .edit-btn,
+    .save-btn,
+    .cancel-btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+    
+    .sidebar-link {
+        min-height: 48px;
+        padding: 16px 20px;
+    }
+    
+    .action-btn,
+    .settings-btn {
+        min-height: 48px;
+        padding: 14px 16px;
+    }
+    
+    #todoInput {
+        padding: 16px 20px;
+        font-size: 16px;
+    }
+    
+    #sortSelect {
+        padding: 14px 16px;
+        font-size: 16px;
+        min-height: 48px;
+    }
+    
+    .sort-order-btn {
+        min-height: 48px;
+        min-width: 48px;
+        padding: 14px;
+    }
+    
+    .sidebar-search input {
+        padding: 14px 16px 14px 44px;
+        font-size: 16px;
+        min-height: 48px;
+    }
+    
+    .clear-search-btn {
+        padding: 8px;
+        min-width: 32px;
+        min-height: 32px;
+    }
+}
+
+/* 터치 피드백 효과 */
+@media (hover: none) and (pointer: coarse) {
+    .todo-item {
+        transition: background-color 0.1s ease, transform 0.1s ease;
+    }
+    
+    .todo-item:active {
+        background-color: #2a2a2a;
+        transform: scale(0.98);
+    }
+    
+    .sidebar-link:active,
+    .action-btn:active,
+    .settings-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+    
+    .important-indicator:active {
+        transform: scale(0.9);
+        transition: transform 0.1s ease;
+    }
+    
+    button:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+    
+    .todo-checkbox:active {
+        transform: scale(1.1);
+        transition: transform 0.1s ease;
+    }
+}
+
+/* 스와이프 제스처 힌트 */
+@media (max-width: 768px) {
+    .todo-item {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .todo-item::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(to bottom, transparent, var(--accent-color), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .todo-item:hover::after {
+        opacity: 0.3;
     }
 }
 
@@ -1412,6 +1758,132 @@ footer {
     
     .sidebar-header h2 {
         font-size: 1.2em;
+    }
+}
+
+/* 모바일 성능 최적화 */
+@media (max-width: 768px) {
+    /* GPU 가속 활용 */
+    .sidebar,
+    .side-panel,
+    .modal,
+    .mobile-overlay,
+    .overlay {
+        transform: translateZ(0);
+        will-change: transform, opacity;
+    }
+    
+    /* 애니메이션 최적화 */
+    .sidebar {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translate3d(-100%, 0, 0);
+    }
+    
+    .sidebar.open {
+        transform: translate3d(0, 0, 0);
+    }
+    
+    /* 스크롤 성능 개선 */
+    .todo-list,
+    .completed-todos,
+    .side-panel-content {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+    
+    /* 레이아웃 최적화 */
+    .todo-item,
+    .sidebar-link {
+        contain: layout;
+    }
+    
+    /* 불필요한 애니메이션 제거 */
+    .todo-item:hover {
+        background: #252423;
+        transition: none;
+    }
+    
+    /* 터치 지연 제거 */
+    .todo-checkbox,
+    .important-indicator,
+    .delete-btn,
+    .edit-btn,
+    .sidebar-link,
+    .action-btn,
+    .settings-btn {
+        touch-action: manipulation;
+    }
+    
+    /* 폰트 렌더링 최적화 */
+    body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeSpeed;
+    }
+    
+    /* 이미지 최적화 (에모지 렌더링) */
+    .sidebar-icon,
+    .context-icon,
+    .action-icon,
+    .settings-icon {
+        font-display: swap;
+        contain: strict;
+    }
+    
+    /* 메모리 사용량 최적화 */
+    .todo-item.completed {
+        contain: style layout;
+    }
+}
+
+/* 저해상도 디스플레이 최적화 */
+@media (max-width: 480px) and (max-resolution: 150dpi) {
+    body {
+        font-size: 15px;
+    }
+    
+    .sidebar-header h2 {
+        font-size: 18px;
+    }
+    
+    header h1 {
+        font-size: 18px;
+    }
+}
+
+/* 네트워크 절약 모드 */
+@media (prefers-reduced-data: reduce) {
+    .todo-item::after,
+    .sidebar-link:hover,
+    .todo-item:hover {
+        background: none;
+        box-shadow: none;
+    }
+    
+    .modal,
+    .side-panel,
+    .context-menu {
+        backdrop-filter: none;
+    }
+}
+
+/* 배터리 절약 모드 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .sidebar {
+        transition: none;
+    }
+    
+    .mobile-overlay {
+        transition: none;
     }
 }
 
