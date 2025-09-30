@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>할일목록</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="calendar-styles.css">
 </head>
 <body>
     <!-- 사이드바 -->
@@ -21,6 +22,14 @@
             </div>
         </div>
         <nav class="sidebar-nav">
+            <!-- 캘린더 버튼 -->
+            <div class="calendar-section">
+                <button id="calendarBtn" class="calendar-btn" title="캘린더 보기">
+                    <span class="calendar-icon">📅</span>
+                    <span class="calendar-text">캘린더</span>
+                </button>
+            </div>
+
             <ul class="sidebar-menu">
                 <li class="sidebar-item">
                     <a href="#" class="sidebar-link active" data-filter="all">
@@ -78,11 +87,33 @@
         </header>
 
         <main>
-            <section class="add-todo-section">
-                <div class="input-group">
-                    <input type="text" id="todoInput" placeholder="작업 추가" maxlength="100">
+            <!-- 캘린더 뷰 -->
+            <div id="calendarView" class="calendar-view" style="display: none;">
+                <div class="calendar-header">
+                    <button id="prevMonth" class="calendar-nav-btn">◀</button>
+                    <h2 id="currentMonthYear"></h2>
+                    <button id="nextMonth" class="calendar-nav-btn">▶</button>
+                    <button id="todayBtn" class="today-btn">오늘</button>
                 </div>
-            </section>
+                <div class="calendar-weekdays">
+                    <div class="weekday">일</div>
+                    <div class="weekday">월</div>
+                    <div class="weekday">화</div>
+                    <div class="weekday">수</div>
+                    <div class="weekday">목</div>
+                    <div class="weekday">금</div>
+                    <div class="weekday">토</div>
+                </div>
+                <div id="calendarDays" class="calendar-days"></div>
+            </div>
+
+            <!-- 할일 리스트 뷰 -->
+            <div id="todoListView">
+                <section class="add-todo-section">
+                    <div class="input-group">
+                        <input type="text" id="todoInput" placeholder="작업 추가" maxlength="100">
+                    </div>
+                </section>
 
             <!-- 정렬 섹션 -->
             <section class="sort-section">
@@ -125,6 +156,8 @@
                     </ul>
                 </div>
             </section>
+            </div>
+            <!-- todoListView 종료 -->
         </main>
 
         <footer>
@@ -239,6 +272,11 @@
         <div class="context-item" data-action="markCompleted">
             <span class="context-icon">✅</span>
             완료됨으로 표시
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-item" data-action="toggleCalendar">
+            <span class="context-icon">📅</span>
+            <span class="calendar-toggle-text">캘린더에 추가</span>
         </div>
         <div class="context-separator"></div>
         <div class="context-item" data-action="dueTomorrow">

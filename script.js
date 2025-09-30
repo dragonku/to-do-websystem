@@ -18,7 +18,12 @@ class TodoManager {
         this.currentContextMenuListId = null;
         this.isManagingLists = false;
         this.settings = this.loadSettings();
-        
+
+        // 캘린더 관련 속성
+        this.isCalendarView = false;
+        this.currentMonth = new Date().getMonth();
+        this.currentYear = new Date().getFullYear();
+
         this.initializeElements();
         this.bindEvents();
         this.bindListEvents();
@@ -93,7 +98,17 @@ class TodoManager {
         
         // 디버깅: listContextMenu 요소 확인
         console.log('listContextMenu element:', this.listContextMenu);
-        
+
+        // 캘린더 요소들
+        this.calendarBtn = document.getElementById('calendarBtn');
+        this.calendarView = document.getElementById('calendarView');
+        this.todoListView = document.getElementById('todoListView');
+        this.currentMonthYear = document.getElementById('currentMonthYear');
+        this.calendarDays = document.getElementById('calendarDays');
+        this.prevMonth = document.getElementById('prevMonth');
+        this.nextMonth = document.getElementById('nextMonth');
+        this.todayBtn = document.getElementById('todayBtn');
+
         // 모바일 요소들
         this.sidebar = document.getElementById('sidebar');
         this.mobileOverlay = document.getElementById('mobileOverlay');
@@ -155,14 +170,17 @@ class TodoManager {
         
         // 날짜 선택 모달 이벤트
         this.bindDateModalEvents();
-        
+
+        // 캘린더 이벤트
+        this.bindCalendarEvents();
+
         // 전역 클릭 이벤트 (컨텍스트 메뉴 닫기)
         document.addEventListener('click', (e) => {
             if (!this.contextMenu.contains(e.target)) {
                 this.hideContextMenu();
             }
         });
-        
+
         // 할일 목록에 우클릭 이벤트 바인딩
         document.addEventListener('contextmenu', (e) => {
             // 목록 링크인 경우 개별 이벤트 핸들러에서 처리하므로 여기서는 제외
@@ -170,7 +188,7 @@ class TodoManager {
             if (listLink) {
                 return; // 목록 링크는 개별 핸들러에서 처리
             }
-            
+
             const todoItem = e.target.closest('.todo-item');
             if (todoItem) {
                 e.preventDefault();
@@ -219,6 +237,7 @@ class TodoManager {
             files: [],
             isMyDay: false,
             isImportant: false,
+            showInCalendar: false,
             listId: this.currentList
         };
 
@@ -462,7 +481,8 @@ class TodoManager {
                 repeat: newRepeat,
                 files: [...this.attachedFiles],
                 isMyDay: false,
-                isImportant: newImportant
+                isImportant: newImportant,
+                showInCalendar: false
             };
 
             this.todos.unshift(newTodo);
@@ -1236,14 +1256,14 @@ class TodoManager {
                 this.dateOptions.forEach(opt => opt.classList.remove('selected'));
                 // 현재 선택 표시
                 e.target.classList.add('selected');
-                
+
                 const days = parseInt(e.target.dataset.days);
                 const date = new Date();
                 date.setDate(date.getDate() + days);
                 this.datePickerInput.value = date.toISOString().split('T')[0];
             });
         });
-        
+
         // 확인 버튼
         this.confirmDatePicker.addEventListener('click', () => {
             const selectedDate = this.datePickerInput.value;
@@ -1252,23 +1272,202 @@ class TodoManager {
             }
             this.hideDateModal();
         });
-        
+
         // 취소 버튼
         this.cancelDatePicker.addEventListener('click', () => {
             this.hideDateModal();
         });
-        
+
         // 닫기 버튼
         this.closeDateModal.addEventListener('click', () => {
             this.hideDateModal();
         });
-        
+
         // 모달 배경 클릭
         this.dateModal.addEventListener('click', (e) => {
             if (e.target === this.dateModal) {
                 this.hideDateModal();
             }
         });
+    }
+
+    // 캘린더 이벤트 바인딩
+    bindCalendarEvents() {
+        // 캘린더 버튼 클릭
+        this.calendarBtn.addEventListener('click', () => {
+            this.toggleCalendarView();
+        });
+
+        // 이전 달 버튼
+        this.prevMonth.addEventListener('click', () => {
+            this.currentMonth--;
+            if (this.currentMonth < 0) {
+                this.currentMonth = 11;
+                this.currentYear--;
+            }
+            this.renderCalendar();
+        });
+
+        // 다음 달 버튼
+        this.nextMonth.addEventListener('click', () => {
+            this.currentMonth++;
+            if (this.currentMonth > 11) {
+                this.currentMonth = 0;
+                this.currentYear++;
+            }
+            this.renderCalendar();
+        });
+
+        // 오늘 버튼
+        this.todayBtn.addEventListener('click', () => {
+            const today = new Date();
+            this.currentMonth = today.getMonth();
+            this.currentYear = today.getFullYear();
+            this.renderCalendar();
+        });
+    }
+
+    // 캘린더 뷰 토글
+    toggleCalendarView() {
+        this.isCalendarView = !this.isCalendarView;
+
+        if (this.isCalendarView) {
+            this.todoListView.style.display = 'none';
+            this.calendarView.style.display = 'block';
+            this.calendarBtn.classList.add('active');
+            this.renderCalendar();
+        } else {
+            this.todoListView.style.display = 'block';
+            this.calendarView.style.display = 'none';
+            this.calendarBtn.classList.remove('active');
+        }
+    }
+
+    // 캘린더 렌더링
+    renderCalendar() {
+        // 월/년 표시
+        const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+        this.currentMonthYear.textContent = `${this.currentYear}년 ${monthNames[this.currentMonth]}`;
+
+        // 해당 월의 첫날과 마지막 날
+        const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+        const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+
+        // 첫 주의 시작 (일요일부터 시작)
+        const startingDayOfWeek = firstDay.getDay();
+
+        // 캘린더 그리드 초기화
+        this.calendarDays.innerHTML = '';
+
+        // 이전 달의 날짜들
+        const prevMonthLastDay = new Date(this.currentYear, this.currentMonth, 0).getDate();
+        for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+            const dayDiv = this.createCalendarDay(prevMonthLastDay - i, true, false);
+            this.calendarDays.appendChild(dayDiv);
+        }
+
+        // 현재 달의 날짜들
+        const today = new Date();
+        for (let day = 1; day <= lastDay.getDate(); day++) {
+            const isToday = today.getDate() === day &&
+                           today.getMonth() === this.currentMonth &&
+                           today.getFullYear() === this.currentYear;
+            const dayDiv = this.createCalendarDay(day, false, isToday);
+            this.calendarDays.appendChild(dayDiv);
+        }
+
+        // 다음 달의 날짜들
+        const remainingDays = 42 - this.calendarDays.children.length; // 6주 * 7일
+        for (let day = 1; day <= remainingDays; day++) {
+            const dayDiv = this.createCalendarDay(day, true, false);
+            this.calendarDays.appendChild(dayDiv);
+        }
+    }
+
+    // 캘린더 날짜 셀 생성
+    createCalendarDay(day, isOtherMonth, isToday) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+
+        if (isOtherMonth) {
+            dayDiv.classList.add('other-month');
+        }
+
+        if (isToday) {
+            dayDiv.classList.add('today');
+        }
+
+        // 요일 클래스 추가 (일요일/토요일)
+        const date = new Date(this.currentYear, this.currentMonth, day);
+        const dayOfWeek = date.getDay();
+        if (dayOfWeek === 0) {
+            dayDiv.classList.add('sunday');
+        } else if (dayOfWeek === 6) {
+            dayDiv.classList.add('saturday');
+        }
+
+        // 날짜 번호
+        const dayNumber = document.createElement('div');
+        dayNumber.className = 'calendar-day-number';
+        dayNumber.textContent = day;
+        dayDiv.appendChild(dayNumber);
+
+        // 해당 날짜의 할일 표시
+        if (!isOtherMonth) {
+            const todosContainer = document.createElement('div');
+            todosContainer.className = 'calendar-todos';
+
+            const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const todosForDate = this.todos.filter(todo =>
+                todo.showInCalendar &&
+                todo.dueDate &&
+                todo.dueDate.startsWith(dateStr)
+            );
+
+            // 최대 3개까지 표시
+            const displayCount = Math.min(3, todosForDate.length);
+            for (let i = 0; i < displayCount; i++) {
+                const todo = todosForDate[i];
+                const todoItem = document.createElement('div');
+                todoItem.className = 'calendar-todo-item';
+
+                if (todo.completed) {
+                    todoItem.classList.add('completed');
+                } else if (todo.priority === 'high') {
+                    todoItem.classList.add('priority-high');
+                } else if (todo.priority === 'low') {
+                    todoItem.classList.add('priority-low');
+                }
+
+                todoItem.textContent = todo.text;
+                todoItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openTodoDetail(todo.id);
+                });
+
+                todosContainer.appendChild(todoItem);
+            }
+
+            // 더 많은 할일이 있으면 표시
+            if (todosForDate.length > 3) {
+                const moreDiv = document.createElement('div');
+                moreDiv.className = 'calendar-more-todos';
+                moreDiv.textContent = `+${todosForDate.length - 3} 더보기`;
+                todosContainer.appendChild(moreDiv);
+            }
+
+            dayDiv.appendChild(todosContainer);
+        }
+
+        return dayDiv;
+    }
+
+    // 할일 상세 열기
+    openTodoDetail(todoId) {
+        const todo = this.todos.find(t => t.id === todoId);
+        if (todo) {
+            this.openEditSidePanel(todo);
+        }
     }
     
     // 컨텍스트 메뉴 표시
@@ -1303,7 +1502,7 @@ class TodoManager {
     updateContextMenuItems(todoId) {
         const todo = this.todos.find(t => t.id === todoId);
         if (!todo) return;
-        
+
         // 중요로 표시/해제 텍스트 변경
         const importantItem = this.contextMenu.querySelector('[data-action="markImportant"]');
         if (importantItem) {
@@ -1311,19 +1510,19 @@ class TodoManager {
             while (importantItem.firstChild) {
                 importantItem.removeChild(importantItem.firstChild);
             }
-            
+
             const iconSpan = document.createElement('span');
             iconSpan.className = 'context-icon';
             iconSpan.textContent = '⭐';
-            
+
             const textNode = document.createTextNode(
                 todo.isImportant ? '중요 표시 해제' : '중요로 표시'
             );
-            
+
             importantItem.appendChild(iconSpan);
             importantItem.appendChild(textNode);
         }
-        
+
         // 완료됨으로 표시/해제 텍스트 변경
         const completedItem = this.contextMenu.querySelector('[data-action="markCompleted"]');
         if (completedItem) {
@@ -1331,19 +1530,19 @@ class TodoManager {
             while (completedItem.firstChild) {
                 completedItem.removeChild(completedItem.firstChild);
             }
-            
+
             const iconSpan = document.createElement('span');
             iconSpan.className = 'context-icon';
             iconSpan.textContent = '✅';
-            
+
             const textNode = document.createTextNode(
                 todo.completed ? '미완료로 표시' : '완료됨으로 표시'
             );
-            
+
             completedItem.appendChild(iconSpan);
             completedItem.appendChild(textNode);
         }
-        
+
         // 나의 하루 추가/제거 텍스트 변경
         const myDayItem = this.contextMenu.querySelector('[data-action="addToMyDay"]');
         if (myDayItem) {
@@ -1351,26 +1550,46 @@ class TodoManager {
             while (myDayItem.firstChild) {
                 myDayItem.removeChild(myDayItem.firstChild);
             }
-            
+
             const iconSpan = document.createElement('span');
             iconSpan.className = 'context-icon';
             iconSpan.textContent = '☀️';
-            
+
             const textNode = document.createTextNode(
                 todo.isMyDay ? '나의 하루에서 제거' : '나의 하루 추가'
             );
-            
+
             myDayItem.appendChild(iconSpan);
             myDayItem.appendChild(textNode);
+        }
+
+        // 캘린더 추가/제거 텍스트 변경
+        const calendarItem = this.contextMenu.querySelector('[data-action="toggleCalendar"]');
+        if (calendarItem) {
+            // Clear existing content
+            while (calendarItem.firstChild) {
+                calendarItem.removeChild(calendarItem.firstChild);
+            }
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'context-icon';
+            iconSpan.textContent = '📅';
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'calendar-toggle-text';
+            textSpan.textContent = todo.showInCalendar ? '캘린더에서 제거' : '캘린더에 추가';
+
+            calendarItem.appendChild(iconSpan);
+            calendarItem.appendChild(textSpan);
         }
     }
     
     // 컨텍스트 메뉴 액션 처리
     handleContextMenuAction(action) {
         if (!this.currentContextMenuTodoId) return;
-        
+
         const todoId = this.currentContextMenuTodoId;
-        
+
         switch (action) {
             case 'addToMyDay':
                 this.toggleMyDay(todoId);
@@ -1390,9 +1609,33 @@ class TodoManager {
             case 'removeDueDate':
                 this.removeDueDate(todoId);
                 break;
+            case 'toggleCalendar':
+                this.toggleTodoCalendar(todoId);
+                break;
             case 'delete':
                 this.deleteTodo(todoId);
                 break;
+        }
+    }
+
+    // 할일의 캘린더 표시 토글
+    toggleTodoCalendar(todoId) {
+        const todo = this.todos.find(t => t.id === todoId);
+        if (todo) {
+            todo.showInCalendar = !todo.showInCalendar;
+            todo.updatedAt = new Date().toISOString();
+            this.saveTodos();
+            this.render();
+
+            // 캘린더 뷰가 열려있으면 다시 렌더링
+            if (this.isCalendarView) {
+                this.renderCalendar();
+            }
+
+            const message = todo.showInCalendar
+                ? '캘린더에 추가되었습니다.'
+                : '캘린더에서 제거되었습니다.';
+            this.showNotification(message, 'success');
         }
     }
     

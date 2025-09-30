@@ -1,0 +1,271 @@
+/* ==================== 캘린더 스타일 (Microsoft 스타일) ==================== */
+
+/* 캘린더 버튼 섹션 */
+.calendar-section {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 8px;
+}
+
+.calendar-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    color: #374151;
+}
+
+.calendar-btn:hover {
+    background-color: #f3f4f6;
+}
+
+.calendar-btn.active {
+    background-color: #0078d4;
+    color: white;
+}
+
+.calendar-icon {
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+.calendar-text {
+    font-weight: 500;
+}
+
+/* 캘린더 뷰 */
+.calendar-view {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding: 0 8px;
+}
+
+.calendar-header h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1f2937;
+    flex: 1;
+    text-align: center;
+}
+
+.calendar-nav-btn {
+    background: transparent;
+    border: 1px solid #d1d5db;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #374151;
+    transition: all 0.2s ease;
+}
+
+.calendar-nav-btn:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.today-btn {
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-left: 12px;
+}
+
+.today-btn:hover {
+    background-color: #005a9e;
+}
+
+/* 요일 헤더 */
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 2px;
+    background: #f3f4f6;
+    padding: 8px 4px;
+    border-radius: 8px 8px 0 0;
+}
+
+.weekday {
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: #6b7280;
+    padding: 8px;
+}
+
+/* 달력 날짜 그리드 */
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    background: #f3f4f6;
+    padding: 4px;
+    border-radius: 0 0 8px 8px;
+    min-height: 500px;
+}
+
+.calendar-day {
+    background: white;
+    border-radius: 6px;
+    min-height: 100px;
+    padding: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+    background-color: #f9fafb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.calendar-day.other-month {
+    opacity: 0.3;
+}
+
+.calendar-day.today {
+    background-color: #eff6ff;
+    border: 2px solid #0078d4;
+}
+
+.calendar-day-number {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.calendar-day.today .calendar-day-number {
+    color: #0078d4;
+    font-weight: 600;
+}
+
+.calendar-day.sunday .calendar-day-number {
+    color: #dc2626;
+}
+
+.calendar-day.saturday .calendar-day-number {
+    color: #2563eb;
+}
+
+/* 캘린더 할일 항목 */
+.calendar-todos {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 70px;
+    overflow: hidden;
+}
+
+.calendar-todo-item {
+    background: #0078d4;
+    color: white;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-todo-item:hover {
+    background: #005a9e;
+    transform: translateX(2px);
+}
+
+.calendar-todo-item.completed {
+    background: #9ca3af;
+    text-decoration: line-through;
+}
+
+.calendar-todo-item.priority-high {
+    background: #dc2626;
+}
+
+.calendar-todo-item.priority-low {
+    background: #10b981;
+}
+
+.calendar-more-todos {
+    font-size: 11px;
+    color: #6b7280;
+    text-align: center;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .calendar-view {
+        padding: 12px;
+    }
+
+    .calendar-header h2 {
+        font-size: 18px;
+    }
+
+    .calendar-nav-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    .calendar-day {
+        min-height: 70px;
+        padding: 4px;
+    }
+
+    .calendar-day-number {
+        font-size: 12px;
+    }
+
+    .calendar-todo-item {
+        font-size: 10px;
+        padding: 3px 5px;
+    }
+
+    .weekday {
+        font-size: 11px;
+        padding: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendar-day {
+        min-height: 50px;
+        padding: 2px;
+    }
+
+    .calendar-todos {
+        max-height: 40px;
+    }
+
+    .weekday {
+        font-size: 10px;
+        padding: 4px 2px;
+    }
+}
