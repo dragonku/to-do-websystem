@@ -65,6 +65,7 @@ class TodoManager {
         this.sideMemo = document.getElementById('sideMemo');
         this.sideCharCount = document.getElementById('sideCharCount');
         this.sideImportant = document.getElementById('sideImportant');
+        this.sideCalendar = document.getElementById('sideCalendar');
         this.sideInfoGroup = document.getElementById('sideInfoGroup');
         this.sideCreatedDate = document.getElementById('sideCreatedDate');
         this.sideUpdatedDate = document.getElementById('sideUpdatedDate');
@@ -295,6 +296,7 @@ class TodoManager {
         this.sideDueDate.value = '';
         this.sideRepeat.value = 'none';
         this.sideImportant.checked = false;
+        this.sideCalendar.checked = false;
         this.sideFiles.value = '';
         this.sideMemo.value = '';
         this.sideCharCount.textContent = '0';
@@ -313,6 +315,7 @@ class TodoManager {
         this.sideDueDate.value = todo.dueDate || '';
         this.sideRepeat.value = todo.repeat || 'none';
         this.sideImportant.checked = todo.isImportant || false;
+        this.sideCalendar.checked = todo.showInCalendar || false;
         this.sideMemo.value = todo.memo || '';
         this.sideCharCount.textContent = (todo.memo || '').length;
         
@@ -443,6 +446,7 @@ class TodoManager {
         const newDueDate = this.sideDueDate.value || null;
         const newRepeat = this.sideRepeat.value;
         const newImportant = this.sideImportant.checked;
+        const newCalendar = this.sideCalendar.checked;
         const newMemo = this.sanitizeInput(this.sideMemo.value);
 
         if (!newText) {
@@ -461,6 +465,7 @@ class TodoManager {
                 todo.dueDate = newDueDate;
                 todo.repeat = newRepeat;
                 todo.isImportant = newImportant;
+                todo.showInCalendar = newCalendar;
                 todo.memo = newMemo;
                 todo.files = [...this.attachedFiles];
                 todo.updatedAt = new Date().toISOString();
@@ -482,7 +487,7 @@ class TodoManager {
                 files: [...this.attachedFiles],
                 isMyDay: false,
                 isImportant: newImportant,
-                showInCalendar: false
+                showInCalendar: newCalendar
             };
 
             this.todos.unshift(newTodo);
@@ -493,6 +498,12 @@ class TodoManager {
         this.render();
         this.updateSidebarCounts();
         this.renderLists();
+
+        // 캘린더 뷰가 활성화되어 있으면 다시 렌더링
+        if (this.isCalendarView) {
+            this.renderCalendar();
+        }
+
         this.closeSidePanelDialog();
     }
 
@@ -683,6 +694,15 @@ class TodoManager {
     setSidebarFilter(filter) {
         this.currentFilter = filter;
         this.currentList = null; // 필터 선택시 목록 선택 해제
+
+        // 캘린더 뷰가 활성화되어 있으면 리스트 뷰로 전환
+        if (this.isCalendarView) {
+            this.isCalendarView = false;
+            this.todoListView.style.display = 'block';
+            this.calendarView.style.display = 'none';
+            this.calendarBtn.classList.remove('active');
+        }
+
         this.updateSidebarLinks();
         this.updatePageTitle(filter);
         this.render();
@@ -1772,22 +1792,30 @@ class TodoManager {
     selectList(listId) {
         this.currentList = listId;
         this.currentFilter = 'all'; // 기본 필터로 설정
-        
+
+        // 캘린더 뷰가 활성화되어 있으면 리스트 뷰로 전환
+        if (this.isCalendarView) {
+            this.isCalendarView = false;
+            this.todoListView.style.display = 'block';
+            this.calendarView.style.display = 'none';
+            this.calendarBtn.classList.remove('active');
+        }
+
         // 사이드바 링크 업데이트
         document.querySelectorAll('.sidebar-link').forEach(link => {
             link.classList.remove('active');
         });
-        
+
         const selectedLink = document.querySelector(`[data-list-id="${listId}"]`);
         if (selectedLink) {
             selectedLink.classList.add('active');
         }
-        
+
         // 기본 필터 링크도 비활성화
         document.querySelectorAll('[data-filter]').forEach(link => {
             link.classList.remove('active');
         });
-        
+
         // 페이지 제목 업데이트
         const selectedList = this.lists.find(l => l.id === listId);
         if (selectedList) {

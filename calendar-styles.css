@@ -18,11 +18,11 @@
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
-    color: #374151;
+    color: var(--text-color);
 }
 
 .calendar-btn:hover {
-    background-color: #f3f4f6;
+    background-color: var(--hover-bg);
 }
 
 .calendar-btn.active {
@@ -57,26 +57,26 @@
 .calendar-header h2 {
     font-size: 24px;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text-color);
     flex: 1;
     text-align: center;
 }
 
 .calendar-nav-btn {
     background: transparent;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-color);
     width: 36px;
     height: 36px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
-    color: #374151;
+    color: var(--text-color);
     transition: all 0.2s ease;
 }
 
 .calendar-nav-btn:hover {
-    background-color: #f3f4f6;
-    border-color: #9ca3af;
+    background-color: var(--hover-bg);
+    border-color: var(--border-color);
 }
 
 .today-btn {
