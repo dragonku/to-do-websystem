@@ -669,7 +669,7 @@ header h1 {
     font-size: 16px;
     word-wrap: break-word;
     color: #ffffff;
-    line-height: 1.5;
+    line-height: 1.0;
     cursor: pointer;
     margin-top: 1px;
 }
@@ -1448,7 +1448,7 @@ footer {
     
     .todo-text {
         font-size: 16px;
-        line-height: 1.6;
+        line-height: 1.0;
     }
     
     .todo-meta {
