@@ -140,13 +140,13 @@ export const useTodoStore = create<TodoStore>()(
       
       deleteList: (id) => {
         if (id === '1') return // Cannot delete default list
-        
+
         set((state) => ({
           lists: state.lists.filter((list) => list.id !== id),
           todos: state.todos.map((todo) =>
             todo.listId === id ? { ...todo, listId: '1' } : todo
           ),
-          currentList: state.currentList === id ? null : state.currentList,
+          currentList: state.currentList?.id === id ? null : state.currentList,
         }))
       },
       
