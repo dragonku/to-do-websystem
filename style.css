@@ -587,14 +587,14 @@ header h1 {
 .todo-item {
     display: flex;
     align-items: flex-start;
-    padding: 16px 20px;
+    padding: 10px 20px;
     border-bottom: 1px solid #323130;
     margin-bottom: 0;
     background: transparent;
     border-radius: 8px;
     transition: all 0.2s ease;
     position: relative;
-    min-height: 60px;
+    min-height: 40px;
 }
 
 .todo-item:hover {
@@ -2030,7 +2030,7 @@ footer {
 
 .checkbox-text {
     font-weight: normal;
-    color: #333;
+    color: var(--text-color);
     font-size: 14px;
 }
 
@@ -2786,7 +2786,7 @@ body.light-theme .settings-btn:hover {
 
 .settings-section .checkbox-text {
     font-weight: normal;
-    color: #555;
+    color: var(--text-color);
     font-size: 14px;
 }
 

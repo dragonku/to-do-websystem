@@ -1218,7 +1218,7 @@ class TodoManager {
             if (lists.length === 0) {
                 const defaultList = {
                     id: 1,
-                    name: '개인',
+                    name: 'Personal',
                     icon: '📋',
                     color: '#0078d4',
                     createdAt: new Date().toISOString()
@@ -1226,13 +1226,13 @@ class TodoManager {
                 lists.push(defaultList);
                 this.saveLists(lists);
             }
-            
+
             return lists;
         } catch (error) {
             console.error('목록을 불러오는 중 오류 발생:', error);
             return [{
                 id: 1,
-                name: '개인',
+                name: 'Personal',
                 icon: '📋',
                 color: '#0078d4',
                 createdAt: new Date().toISOString()
