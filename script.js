@@ -1486,7 +1486,7 @@ class TodoManager {
     openTodoDetail(todoId) {
         const todo = this.todos.find(t => t.id === todoId);
         if (todo) {
-            this.openEditSidePanel(todo);
+            this.openSidePanel('edit', todoId);
         }
     }
     
