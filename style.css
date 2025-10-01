@@ -650,10 +650,11 @@ header h1 {
 .todo-content {
     flex: 1;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
     min-width: 0;
+    flex-wrap: wrap;
 }
 
 .todo-main-row {
@@ -665,13 +666,12 @@ header h1 {
 }
 
 .todo-text {
-    flex: 1;
+    flex: 0 0 auto;
     font-size: 14px;
     word-wrap: break-word;
     color: #ffffff;
-    line-height: 1.2;
+    line-height: 0.8;
     cursor: pointer;
-    margin-top: 0px;
 }
 
 .todo-indicators {
@@ -692,8 +692,8 @@ header h1 {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
-    margin-top: 0px;
     font-size: 12px;
+    line-height: 1;
 }
 
 .todo-meta > *:not(:first-child)::before {

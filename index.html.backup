@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>할일목록</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 사이드바 -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>📋 할일목록</h2>
+            <!-- 사이드바 검색 -->
+            <div class="sidebar-search">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="sidebarSearchInput" placeholder="검색...">
+                    <button id="clearSidebarSearch" class="clear-search-btn" style="display: none;">&times;</button>
+                </div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <ul class="sidebar-menu">
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link active" data-filter="all">
+                        <span class="sidebar-icon">📋</span>
+                        <span class="sidebar-text">모두</span>
+                        <span class="sidebar-count" id="allCount">0</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link" data-filter="today">
+                        <span class="sidebar-icon">📅</span>
+                        <span class="sidebar-text">오늘할일</span>
+                        <span class="sidebar-count" id="todayCount">0</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link" data-filter="important">
+                        <span class="sidebar-icon">⭐</span>
+                        <span class="sidebar-text">중요</span>
+                        <span class="sidebar-count" id="importantCount">0</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link" data-filter="scheduled">
+                        <span class="sidebar-icon">🗓️</span>
+                        <span class="sidebar-text">계획한 일정</span>
+                        <span class="sidebar-count" id="scheduledCount">0</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 새 목록 버튼 -->
+            <div class="sidebar-actions">
+                <button id="addListBtn" class="action-btn" title="새 목록">
+                    <span class="action-icon">➕</span>
+                    <span class="action-text">새 목록</span>
+                </button>
+            </div>
+            
+            <!-- 설정 섹션 -->
+            <div class="sidebar-settings">
+                <button id="settingsBtn" class="settings-btn" title="설정">
+                    <span class="settings-icon">⚙️</span>
+                    <span class="settings-text">설정</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content">
+        <div class="container">
+        <header>
+            <h1>📝 할일목록</h1>
+        </header>
+
+        <main>
+            <section class="add-todo-section">
+                <div class="input-group">
+                    <input type="text" id="todoInput" placeholder="작업 추가" maxlength="100">
+                </div>
+            </section>
+
+            <!-- 정렬 섹션 -->
+            <section class="sort-section">
+                <div class="sort-container">
+                    <label for="sortSelect">정렬:</label>
+                    <select id="sortSelect">
+                        <option value="newest">최신순</option>
+                        <option value="oldest">오래된순</option>
+                        <option value="priority">우선순위순</option>
+                        <option value="dueDate">마감일순</option>
+                        <option value="alphabetical">가나다순</option>
+                        <option value="completed">완료상태순</option>
+                    </select>
+                    <button id="toggleSortOrder" class="sort-order-btn" title="정렬 순서 변경">⬇️</button>
+                </div>
+            </section>
+
+
+            <section class="todo-list-section">
+                <!-- 진행중인 할일 섹션 -->
+                <div class="pending-todos-section">
+                    <ul id="todoList" class="todo-list">
+                        <!-- 진행중인 할 일 항목들이 여기에 동적으로 추가됩니다 -->
+                    </ul>
+                    <div id="emptyState" class="empty-state">
+                        <p>🌟 집중하세요. 지금 해야 할 작업이 여기에 표시됩니다.</p>
+                    </div>
+                </div>
+
+                <!-- 완료된 할일 섹션 -->
+                <div id="completedSection" class="completed-section" style="display: none;">
+                    <div class="completed-header" onclick="todoManager.toggleCompletedSection()">
+                        <h3>
+                            <span id="completedToggleIcon" class="toggle-icon">▶</span>
+                            완료 (<span id="completedSectionCount">0</span>)
+                        </h3>
+                    </div>
+                    <ul id="completedTodoList" class="todo-list completed-todos" style="display: none;">
+                        <!-- 완료된 할 일 항목들이 여기에 동적으로 추가됩니다 -->
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 할일목록 | 생산성을 높이세요! 🚀</p>
+            <button id="clearAllBtn" class="clear-all-btn">모든 할 일 삭제</button>
+        </footer>
+        </div>
+    </div>
+
+    <!-- 사이드 패널 -->
+    <div id="sidePanel" class="side-panel">
+        <div class="side-panel-header">
+            <h3 id="sidePanelTitle">할 일 추가</h3>
+            <button id="closeSidePanel" class="close-side-btn">&times;</button>
+        </div>
+        <div class="side-panel-content">
+            <form id="sideForm">
+                <div class="form-group">
+                    <label for="sideTitle">할 일 제목 *</label>
+                    <input type="text" id="sideTitle" maxlength="100" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sideList">목록</label>
+                        <select id="sideList">
+                            <!-- 목록 옵션들이 동적으로 추가됩니다 -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sidePriority">우선순위</label>
+                        <select id="sidePriority">
+                            <option value="low">낮음</option>
+                            <option value="medium" selected>보통</option>
+                            <option value="high">높음</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="sideDueDate">마감일</label>
+                    <input type="date" id="sideDueDate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="sideRepeat">반복 설정</label>
+                    <select id="sideRepeat">
+                        <option value="none">반복 안함</option>
+                        <option value="daily">매일</option>
+                        <option value="weekly">매주</option>
+                        <option value="monthly">매월</option>
+                        <option value="yearly">매년</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sideImportant">
+                        <span class="checkbox-text">⭐ 중요한 할일로 표시</span>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="sideFiles">파일 첨부</label>
+                    <input type="file" id="sideFiles" multiple accept="image/*,.pdf,.doc,.docx,.txt">
+                    <div id="fileList" class="file-list"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="sideMemo">메모</label>
+                    <textarea id="sideMemo" rows="4" maxlength="500" placeholder="추가 설명이나 메모를 입력하세요..."></textarea>
+                    <div class="char-count">
+                        <span id="sideCharCount">0</span>/500
+                    </div>
+                </div>
+                
+                <div class="form-group info-group" id="sideInfoGroup" style="display: none;">
+                    <div class="info-row">
+                        <label>생성일</label>
+                        <div class="info-text" id="sideCreatedDate">-</div>
+                    </div>
+                    <div class="info-row">
+                        <label>최종 수정일</label>
+                        <div class="info-text" id="sideUpdatedDate">-</div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="side-panel-footer">
+            <button type="button" class="btn btn-secondary" id="cancelSide">취소</button>
+            <button type="button" class="btn btn-primary" id="saveSide">저장</button>
+        </div>
+    </div>
+
+    <!-- 배경 오버레이 -->
+    <div id="overlay" class="overlay"></div>
+    
+    <!-- 모바일 오버레이 -->
+    <div id="mobileOverlay" class="mobile-overlay"></div>
+
+    <!-- 컨텍스트 메뉴 -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-item" data-action="addToMyDay">
+            <span class="context-icon">☀️</span>
+            나의 하루 추가
+        </div>
+        <div class="context-item" data-action="markImportant">
+            <span class="context-icon">⭐</span>
+            중요로 표시
+        </div>
+        <div class="context-item" data-action="markCompleted">
+            <span class="context-icon">✅</span>
+            완료됨으로 표시
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-item" data-action="dueTomorrow">
+            <span class="context-icon">📅</span>
+            내일까지
+        </div>
+        <div class="context-item" data-action="pickDate">
+            <span class="context-icon">🗓️</span>
+            날짜 선택
+        </div>
+        <div class="context-item" data-action="removeDueDate">
+            <span class="context-icon">🚫</span>
+            기한 제거
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-item delete-item" data-action="delete">
+            <span class="context-icon">🗑️</span>
+            삭제
+        </div>
+    </div>
+
+    <!-- 날짜 선택 모달 -->
+    <div id="dateModal" class="date-modal">
+        <div class="date-modal-content">
+            <div class="date-modal-header">
+                <h3>날짜 선택</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="date-modal-body">
+                <input type="date" id="datePickerInput">
+                <div class="date-quick-options">
+                    <button class="date-option" data-days="0">오늘</button>
+                    <button class="date-option" data-days="1">내일</button>
+                    <button class="date-option" data-days="7">다음 주</button>
+                </div>
+            </div>
+            <div class="date-modal-footer">
+                <button class="btn btn-secondary" id="cancelDatePicker">취소</button>
+                <button class="btn btn-primary" id="confirmDatePicker">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 리스트 컨텍스트 메뉴 -->
+    <div id="listContextMenu" class="context-menu">
+        <div class="context-item" data-action="editList">
+            <span class="context-icon">✏️</span>
+            목록 수정
+        </div>
+        <div class="context-item" data-action="duplicateList">
+            <span class="context-icon">📋</span>
+            목록 복제
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-item delete-item" data-action="deleteList">
+            <span class="context-icon">🗑️</span>
+            목록 삭제
+        </div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ 설정</h2>
+                <span class="close-btn" onclick="this.closest('.modal').classList.remove('show')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>🎨 테마 설정</h3>
+                    <div class="setting-group">
+                        <label>테마 모드</label>
+                        <div class="theme-selector">
+                            <button class="theme-option active" data-theme="dark">
+                                <span class="theme-icon">🌙</span>
+                                <span>다크 모드</span>
+                            </button>
+                            <button class="theme-option" data-theme="light">
+                                <span class="theme-icon">☀️</span>
+                                <span>라이트 모드</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label>강조 색상</label>
+                        <div class="accent-colors">
+                            <div class="color-option active" data-color="#0078d4" style="background-color: #0078d4" title="파란색"></div>
+                            <div class="color-option" data-color="#16537e" style="background-color: #16537e" title="진한 파란색"></div>
+                            <div class="color-option" data-color="#00bcf2" style="background-color: #00bcf2" title="하늘색"></div>
+                            <div class="color-option" data-color="#40e0d0" style="background-color: #40e0d0" title="청록색"></div>
+                            <div class="color-option" data-color="#107c10" style="background-color: #107c10" title="초록색"></div>
+                            <div class="color-option" data-color="#498205" style="background-color: #498205" title="올리브색"></div>
+                            <div class="color-option" data-color="#ff8c00" style="background-color: #ff8c00" title="주황색"></div>
+                            <div class="color-option" data-color="#d13438" style="background-color: #d13438" title="빨간색"></div>
+                            <div class="color-option" data-color="#c239b3" style="background-color: #c239b3" title="자주색"></div>
+                            <div class="color-option" data-color="#881798" style="background-color: #881798" title="진한 자주색"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>📱 표시 설정</h3>
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showCompletedCount" checked>
+                            <span class="checkbox-text">완료된 할 일 개수 표시</span>
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showDueDates" checked>
+                            <span class="checkbox-text">마감일 표시</span>
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showPriority" checked>
+                            <span class="checkbox-text">우선순위 배지 표시</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>🔔 알림 설정</h3>
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableNotifications" checked>
+                            <span class="checkbox-text">브라우저 알림 허용</span>
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableSounds" checked>
+                            <span class="checkbox-text">효과음 재생</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>💾 데이터 관리</h3>
+                    <div class="setting-group">
+                        <button class="btn btn-secondary" onclick="todoManager.exportData()">
+                            📤 데이터 내보내기
+                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">
+                            📥 데이터 가져오기
+                        </button>
+                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="todoManager.importData(event)">
+                    </div>
+                    <div class="setting-group">
+                        <button class="btn btn-danger" onclick="todoManager.resetAllData()">
+                            🗑️ 모든 데이터 초기화
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('show')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
