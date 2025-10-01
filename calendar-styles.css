@@ -252,6 +252,66 @@ body:not(.light-theme) .calendar-day.saturday .calendar-day-number {
     background: #10b981;
 }
 
+/* 연속된 일정 스타일 */
+.calendar-todo-item.range-start {
+    border-radius: 4px 0 0 4px;
+    position: relative;
+}
+
+.calendar-todo-item.range-start::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: inherit;
+    z-index: 1;
+}
+
+.calendar-todo-item.range-middle {
+    border-radius: 0;
+    position: relative;
+}
+
+.calendar-todo-item.range-middle::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: inherit;
+    z-index: 1;
+}
+
+.calendar-todo-item.range-middle::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: inherit;
+    z-index: 1;
+}
+
+.calendar-todo-item.range-end {
+    border-radius: 0 4px 4px 0;
+    position: relative;
+}
+
+.calendar-todo-item.range-end::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: inherit;
+    z-index: 1;
+}
+
 .calendar-more-todos {
     font-size: 11px;
     color: #6b7280;

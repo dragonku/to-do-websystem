@@ -1497,6 +1497,17 @@ class TodoManager {
                     todoItem.classList.add('priority-low');
                 }
 
+                // 연속된 일정인지 확인하고 위치 클래스 추가
+                if (todo.startDate && todo.dueDate && todo.startDate !== todo.dueDate) {
+                    if (dateStr === todo.startDate) {
+                        todoItem.classList.add('range-start');
+                    } else if (dateStr === todo.dueDate) {
+                        todoItem.classList.add('range-end');
+                    } else {
+                        todoItem.classList.add('range-middle');
+                    }
+                }
+
                 todoItem.textContent = todo.text;
                 todoItem.addEventListener('click', (e) => {
                     e.stopPropagation();

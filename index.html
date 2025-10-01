@@ -199,10 +199,22 @@
                 </div>
                 
                 <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sideCalendar">
+                        <span class="checkbox-text">📅 캘린더에 표시</span>
+                    </label>
+                </div>
+
+                <div id="calendarDateFields" class="form-group" style="display: none;">
+                    <label for="sideStartDate">시작일</label>
+                    <input type="date" id="sideStartDate">
+                </div>
+
+                <div class="form-group">
                     <label for="sideDueDate">마감일</label>
                     <input type="date" id="sideDueDate">
                 </div>
-                
+
                 <div class="form-group">
                     <label for="sideRepeat">반복 설정</label>
                     <select id="sideRepeat">
@@ -213,24 +225,12 @@
                         <option value="yearly">매년</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="sideImportant">
                         <span class="checkbox-text">⭐ 중요한 할일로 표시</span>
                     </label>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="sideCalendar">
-                        <span class="checkbox-text">📅 캘린더에 표시</span>
-                    </label>
-                </div>
-
-                <div id="calendarDateFields" class="form-group" style="display: none;">
-                    <label for="sideStartDate">시작일</label>
-                    <input type="date" id="sideStartDate">
                 </div>
 
                 <div class="form-group">
