@@ -729,6 +729,19 @@ header h1 {
     gap: 4px;
 }
 
+/* 목록 배지 스타일 */
+.list-badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    white-space: nowrap;
+}
+
 .delete-btn {
     background: #ff6b6b;
     color: white;

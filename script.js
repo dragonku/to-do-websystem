@@ -950,7 +950,20 @@ class TodoManager {
         // Meta row
         const metaRow = document.createElement('div');
         metaRow.className = 'todo-meta';
-        
+
+        // List badge (목록 배지를 제일 앞에 추가)
+        if (todo.listId) {
+            const list = this.lists.find(l => l.id === todo.listId);
+            if (list && list.id !== 1) { // 기본 목록이 아닌 경우만 표시
+                const listBadge = document.createElement('span');
+                listBadge.className = 'list-badge';
+                listBadge.style.backgroundColor = list.color || '#0078d4';
+                listBadge.textContent = list.icon ? `${list.icon} ${list.name}` : list.name;
+                listBadge.title = `목록: ${list.name}`;
+                metaRow.appendChild(listBadge);
+            }
+        }
+
         // Due date
         if (this.settings.showDueDates && todo.dueDate) {
             const dueDateElement = this.createDueDateElement(todo.dueDate);
