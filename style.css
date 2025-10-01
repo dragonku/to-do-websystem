@@ -731,15 +731,20 @@ header h1 {
 
 /* 목록 배지 스타일 */
 .list-badge {
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 0;
+    border-radius: 0;
     font-size: 10px;
-    font-weight: 500;
-    color: white;
+    font-weight: 400;
+    color: #ffffff;
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
     white-space: nowrap;
+    background: none;
+}
+
+body:not(.light-theme) .list-badge {
+    color: #cccccc;
 }
 
 .delete-btn {

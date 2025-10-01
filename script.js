@@ -957,7 +957,6 @@ class TodoManager {
             if (list) {
                 const listBadge = document.createElement('span');
                 listBadge.className = 'list-badge';
-                listBadge.style.backgroundColor = list.color || '#0078d4';
                 listBadge.textContent = list.icon ? `${list.icon} ${list.name}` : list.name;
                 listBadge.title = `목록: ${list.name}`;
                 metaRow.appendChild(listBadge);
