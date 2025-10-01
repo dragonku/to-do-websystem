@@ -666,62 +666,67 @@ header h1 {
 
 .todo-text {
     flex: 1;
-    font-size: 16px;
+    font-size: 14px;
     word-wrap: break-word;
     color: #ffffff;
-    line-height: 1.0;
+    line-height: 1.2;
     cursor: pointer;
-    margin-top: 1px;
+    margin-top: 0px;
 }
 
 .todo-indicators {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     margin-left: auto;
-    margin-top: 1px;
+    margin-top: 0px;
+    opacity: 0.7;
+}
+
+.todo-item:hover .todo-indicators {
+    opacity: 1;
 }
 
 .todo-meta {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     flex-wrap: wrap;
-    margin-top: 0px;
+    margin-top: 2px;
+    font-size: 12px;
 }
 
 .priority-badge {
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: 1px solid transparent;
+    letter-spacing: 0.3px;
+    border: none;
 }
 
 .priority-high {
-    background: rgba(208, 2, 27, 0.1);
+    background: rgba(208, 2, 27, 0.15);
     color: #d0021b;
-    border-color: #d0021b;
 }
 
 .priority-medium {
-    background: rgba(255, 185, 0, 0.1);
+    background: rgba(255, 185, 0, 0.15);
     color: #ffb900;
-    border-color: #ffb900;
 }
 
 .priority-low {
-    background: rgba(16, 124, 16, 0.1);
+    background: rgba(16, 124, 16, 0.15);
     color: #107c10;
-    border-color: #107c10;
 }
 
 .todo-date {
     font-size: 11px;
-    color: #cccccc;
+    color: #8a8886;
     margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .delete-btn {
