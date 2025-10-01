@@ -2110,26 +2110,24 @@ footer {
 
 /* 마감일 관련 스타일 */
 .due-date {
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 8px;
+    font-size: 13px;
+    padding: 0;
+    border-radius: 0;
     margin: 0;
-    font-weight: 500;
+    font-weight: 400;
+    background: none;
 }
 
 .due-date.overdue {
-    background: #ff6b6b;
-    color: white;
+    color: #ff6b6b;
 }
 
 .due-date.due-soon {
-    background: #ffd93d;
-    color: #333;
+    color: #ffd93d;
 }
 
 .due-date.normal {
-    background: #51cf66;
-    color: white;
+    color: #51cf66;
 }
 
 /* 메모 표시 */
