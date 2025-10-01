@@ -146,6 +146,7 @@ body:not(.light-theme) .calendar-days {
     position: relative;
     cursor: pointer;
     transition: all 0.2s ease;
+    overflow: visible;
 }
 
 body:not(.light-theme) .calendar-day {
@@ -218,7 +219,7 @@ body:not(.light-theme) .calendar-day.saturday .calendar-day-number {
     flex-direction: column;
     gap: 4px;
     max-height: 70px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .calendar-todo-item {
@@ -256,60 +257,34 @@ body:not(.light-theme) .calendar-day.saturday .calendar-day-number {
 .calendar-todo-item.range-start {
     border-radius: 4px 0 0 4px;
     position: relative;
-}
-
-.calendar-todo-item.range-start::after {
-    content: '';
-    position: absolute;
-    right: -4px;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: inherit;
-    z-index: 1;
+    margin-right: -8px;
+    padding-right: 14px;
+    z-index: 10;
 }
 
 .calendar-todo-item.range-middle {
     border-radius: 0;
     position: relative;
-}
-
-.calendar-todo-item.range-middle::before {
-    content: '';
-    position: absolute;
-    left: -4px;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: inherit;
-    z-index: 1;
-}
-
-.calendar-todo-item.range-middle::after {
-    content: '';
-    position: absolute;
-    right: -4px;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: inherit;
-    z-index: 1;
+    margin-left: -8px;
+    margin-right: -8px;
+    padding-left: 14px;
+    padding-right: 14px;
+    z-index: 10;
 }
 
 .calendar-todo-item.range-end {
     border-radius: 0 4px 4px 0;
     position: relative;
+    margin-left: -8px;
+    padding-left: 14px;
+    z-index: 10;
 }
 
-.calendar-todo-item.range-end::before {
-    content: '';
-    position: absolute;
-    left: -4px;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: inherit;
-    z-index: 1;
+/* 그리드 갭 오버레이를 위한 추가 스타일 */
+.calendar-day:has(.range-start),
+.calendar-day:has(.range-middle),
+.calendar-day:has(.range-end) {
+    z-index: 5;
 }
 
 .calendar-more-todos {
