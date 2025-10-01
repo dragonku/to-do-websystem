@@ -107,12 +107,20 @@
     border-radius: 8px 8px 0 0;
 }
 
+body:not(.light-theme) .calendar-weekdays {
+    background: #2d2d2d;
+}
+
 .weekday {
     text-align: center;
     font-weight: 600;
     font-size: 13px;
-    color: var(--text-secondary);
+    color: #6b7280;
     padding: 8px;
+}
+
+body:not(.light-theme) .weekday {
+    color: #cccccc;
 }
 
 /* 달력 날짜 그리드 */
@@ -126,6 +134,10 @@
     min-height: 500px;
 }
 
+body:not(.light-theme) .calendar-days {
+    background: #2d2d2d;
+}
+
 .calendar-day {
     background: white;
     border-radius: 6px;
@@ -136,9 +148,18 @@
     transition: all 0.2s ease;
 }
 
+body:not(.light-theme) .calendar-day {
+    background: #1f1f1f;
+}
+
 .calendar-day:hover {
     background-color: #f9fafb;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+body:not(.light-theme) .calendar-day:hover {
+    background-color: #2a2a2a;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .calendar-day.other-month {
@@ -150,11 +171,20 @@
     border: 2px solid #0078d4;
 }
 
+body:not(.light-theme) .calendar-day.today {
+    background-color: #1a3a52;
+    border: 2px solid #0078d4;
+}
+
 .calendar-day-number {
     font-size: 14px;
     font-weight: 500;
-    color: var(--text-color);
+    color: #1f2937;
     margin-bottom: 6px;
+}
+
+body:not(.light-theme) .calendar-day-number {
+    color: #ffffff;
 }
 
 .calendar-day.today .calendar-day-number {
@@ -162,12 +192,24 @@
     font-weight: 600;
 }
 
+body:not(.light-theme) .calendar-day.today .calendar-day-number {
+    color: #4db8ff;
+}
+
 .calendar-day.sunday .calendar-day-number {
     color: #dc2626;
 }
 
+body:not(.light-theme) .calendar-day.sunday .calendar-day-number {
+    color: #ff6b6b;
+}
+
 .calendar-day.saturday .calendar-day-number {
     color: #2563eb;
+}
+
+body:not(.light-theme) .calendar-day.saturday .calendar-day-number {
+    color: #60a5fa;
 }
 
 /* 캘린더 할일 항목 */
@@ -216,6 +258,10 @@
     text-align: center;
     margin-top: 4px;
     font-weight: 500;
+}
+
+body:not(.light-theme) .calendar-more-todos {
+    color: #9ca3af;
 }
 
 /* 반응형 디자인 */
