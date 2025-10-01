@@ -66,6 +66,8 @@ class TodoManager {
         this.sideCharCount = document.getElementById('sideCharCount');
         this.sideImportant = document.getElementById('sideImportant');
         this.sideCalendar = document.getElementById('sideCalendar');
+        this.sideStartDate = document.getElementById('sideStartDate');
+        this.calendarDateFields = document.getElementById('calendarDateFields');
         this.sideInfoGroup = document.getElementById('sideInfoGroup');
         this.sideCreatedDate = document.getElementById('sideCreatedDate');
         this.sideUpdatedDate = document.getElementById('sideUpdatedDate');
@@ -147,7 +149,17 @@ class TodoManager {
 
         // 파일 선택 이벤트
         this.sideFiles.addEventListener('change', (e) => this.handleFileSelection(e));
-        
+
+        // 캘린더 체크박스 이벤트 - 시작일 필드 표시/숨김
+        this.sideCalendar.addEventListener('change', () => {
+            if (this.sideCalendar.checked) {
+                this.calendarDateFields.style.display = 'block';
+            } else {
+                this.calendarDateFields.style.display = 'none';
+                this.sideStartDate.value = '';
+            }
+        });
+
         // 사이드바 메뉴 이벤트
         this.sidebarLinks.forEach(link => {
             link.addEventListener('click', (e) => {
@@ -297,6 +309,8 @@ class TodoManager {
         this.sideRepeat.value = 'none';
         this.sideImportant.checked = false;
         this.sideCalendar.checked = false;
+        this.sideStartDate.value = '';
+        this.calendarDateFields.style.display = 'none';
         this.sideFiles.value = '';
         this.sideMemo.value = '';
         this.sideCharCount.textContent = '0';
@@ -316,6 +330,15 @@ class TodoManager {
         this.sideRepeat.value = todo.repeat || 'none';
         this.sideImportant.checked = todo.isImportant || false;
         this.sideCalendar.checked = todo.showInCalendar || false;
+        this.sideStartDate.value = todo.startDate || '';
+
+        // 캘린더 체크 시 시작일 필드 표시
+        if (todo.showInCalendar) {
+            this.calendarDateFields.style.display = 'block';
+        } else {
+            this.calendarDateFields.style.display = 'none';
+        }
+
         this.sideMemo.value = todo.memo || '';
         this.sideCharCount.textContent = (todo.memo || '').length;
         
@@ -447,6 +470,7 @@ class TodoManager {
         const newRepeat = this.sideRepeat.value;
         const newImportant = this.sideImportant.checked;
         const newCalendar = this.sideCalendar.checked;
+        const newStartDate = this.sideStartDate.value || null;
         const newMemo = this.sanitizeInput(this.sideMemo.value);
 
         if (!newText) {
@@ -466,6 +490,7 @@ class TodoManager {
                 todo.repeat = newRepeat;
                 todo.isImportant = newImportant;
                 todo.showInCalendar = newCalendar;
+                todo.startDate = newStartDate;
                 todo.memo = newMemo;
                 todo.files = [...this.attachedFiles];
                 todo.updatedAt = new Date().toISOString();
@@ -482,6 +507,7 @@ class TodoManager {
                 completed: false,
                 createdAt: new Date().toISOString(),
                 dueDate: newDueDate,
+                startDate: newStartDate,
                 memo: newMemo,
                 repeat: newRepeat,
                 files: [...this.attachedFiles],
@@ -1438,11 +1464,23 @@ class TodoManager {
             todosContainer.className = 'calendar-todos';
 
             const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const todosForDate = this.todos.filter(todo =>
-                todo.showInCalendar &&
-                todo.dueDate &&
-                todo.dueDate.startsWith(dateStr)
-            );
+
+            // 해당 날짜가 시작일과 마감일 사이에 있는 할일 필터링
+            const todosForDate = this.todos.filter(todo => {
+                if (!todo.showInCalendar) return false;
+
+                // 시작일과 마감일이 모두 있는 경우
+                if (todo.startDate && todo.dueDate) {
+                    return dateStr >= todo.startDate && dateStr <= todo.dueDate;
+                }
+
+                // 마감일만 있는 경우 (기존 로직)
+                if (todo.dueDate) {
+                    return todo.dueDate.startsWith(dateStr);
+                }
+
+                return false;
+            });
 
             // 최대 3개까지 표시
             const displayCount = Math.min(3, todosForDate.length);
