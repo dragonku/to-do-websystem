@@ -690,10 +690,17 @@ header h1 {
 .todo-meta {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
     flex-wrap: wrap;
     margin-top: 0px;
     font-size: 12px;
+}
+
+.todo-meta > *:not(:first-child)::before {
+    content: '·';
+    margin-right: 12px;
+    color: #8a8886;
+    font-weight: bold;
 }
 
 .priority-badge {
