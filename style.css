@@ -878,6 +878,11 @@ header h1 {
     justify-content: flex-end;
 }
 
+body:not(.light-theme) .side-panel-footer {
+    background: #1f1f1f;
+    border-top: 1px solid #323130;
+}
+
 /* 오버레이 */
 .overlay {
     position: fixed;
