@@ -43,8 +43,13 @@ class TodoManager {
         this.completedToggleIcon = document.getElementById('completedToggleIcon');
         this.completedSectionCount = document.getElementById('completedSectionCount');
         this.emptyState = document.getElementById('emptyState');
-        this.clearAllBtn = document.getElementById('clearAllBtn');
-        
+
+        // 현재 연도 설정
+        const currentYearSpan = document.getElementById('currentYear');
+        if (currentYearSpan) {
+            currentYearSpan.textContent = new Date().getFullYear();
+        }
+
         // 사이드바 요소들
         this.sidebarLinks = document.querySelectorAll('.sidebar-link');
         this.allCount = document.getElementById('allCount');
@@ -125,9 +130,6 @@ class TodoManager {
             if (e.key === 'Enter') this.addQuickTodo();
         });
 
-        // 모든 할 일 삭제
-        this.clearAllBtn.addEventListener('click', () => this.clearAllTodos());
-        
         // 사이드 패널 이벤트
         this.closeSidePanel.addEventListener('click', () => this.closeSidePanelDialog());
         this.cancelSide.addEventListener('click', () => this.closeSidePanelDialog());
@@ -696,23 +698,6 @@ class TodoManager {
             this.updateSidebarCounts();
             this.renderLists();
             this.showNotification('할 일이 삭제되었습니다.', 'success');
-        }
-    }
-
-    // 모든 할 일 삭제
-    clearAllTodos() {
-        if (this.todos.length === 0) {
-            this.showNotification('삭제할 할 일이 없습니다.', 'info');
-            return;
-        }
-
-        if (confirm('정말로 모든 할 일을 삭제하시겠습니까?')) {
-            this.todos = [];
-            this.saveTodos();
-            this.render();
-            this.updateSidebarCounts();
-            this.renderLists();
-            this.showNotification('모든 할 일이 삭제되었습니다.', 'success');
         }
     }
 
