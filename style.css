@@ -697,31 +697,29 @@ header h1 {
 }
 
 .priority-badge {
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
+    padding: 0;
+    border-radius: 0;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0;
     border: none;
+    background: none;
 }
 
 .priority-high {
-    background: rgba(208, 2, 27, 0.15);
     color: #d0021b;
 }
 
 .priority-medium {
-    background: rgba(255, 185, 0, 0.15);
     color: #ffb900;
 }
 
 .priority-low {
-    background: rgba(16, 124, 16, 0.15);
     color: #107c10;
 }
 
 .todo-date {
-    font-size: 11px;
+    font-size: 13px;
     color: #8a8886;
     margin: 0;
     display: inline-flex;
@@ -733,7 +731,7 @@ header h1 {
 .list-badge {
     padding: 0;
     border-radius: 0;
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 400;
     color: #ffffff;
     display: inline-flex;
@@ -1081,7 +1079,7 @@ body:not(.light-theme) .side-panel-footer {
 
 /* 반복 표시 */
 .repeat-indicator {
-    font-size: 14px;
+    font-size: 13px;
     color: #8764b8;
     margin: 0;
     font-weight: normal;
@@ -1089,7 +1087,7 @@ body:not(.light-theme) .side-panel-footer {
 
 /* 파일 첨부 표시 */
 .attachment-indicator {
-    font-size: 14px;
+    font-size: 13px;
     color: #0078d4;
     margin: 0;
     cursor: pointer;
@@ -1097,7 +1095,7 @@ body:not(.light-theme) .side-panel-footer {
 
 /* 메모 표시 */
 .memo-indicator {
-    font-size: 14px;
+    font-size: 13px;
     color: #6264a7;
     margin: 0;
     cursor: pointer;
@@ -2129,9 +2127,9 @@ footer {
 
 /* 메모 표시 */
 .memo-indicator {
-    font-size: 12px;
-    color: #667eea;
-    margin-left: 8px;
+    font-size: 13px;
+    color: #6264a7;
+    margin-left: 0;
     cursor: pointer;
 }
 
