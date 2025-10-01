@@ -954,7 +954,7 @@ class TodoManager {
         // List badge (목록 배지를 제일 앞에 추가)
         if (todo.listId) {
             const list = this.lists.find(l => l.id === todo.listId);
-            if (list && list.id !== 1) { // 기본 목록이 아닌 경우만 표시
+            if (list) {
                 const listBadge = document.createElement('span');
                 listBadge.className = 'list-badge';
                 listBadge.style.backgroundColor = list.color || '#0078d4';
